@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>How do you keep healthy?</title>
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Liu+Jian+Mao+Cao&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #2B2A28;
+    --accent: #C24A1F;
+    --paper: #FFFFFF;
+    --pink: #FDF8F5;
+    --yellow: #F8D053;
+    --orange: #E07A2E;
+    --pink2: #CB6851;
+    --blue: #5BB0D4;
+    --green: #799863;
+    --text-muted: #6B6560;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", "PingFang SC", cursive, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-track { background: var(--paper); }
+  ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, var(--yellow), var(--pink2)); border-radius: 10px; }
+
+  /* ---------- HERO ---------- */
+  .hero {
+    position: relative;
+    width: 100%;
+    height: clamp(360px, 56vh, 620px);
+    overflow: hidden;
+    background: #FFFFFF;
+  }
+  .hero-img {
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+    filter: saturate(1.25) contrast(1.05) brightness(1.05);
+  }
+  .hero-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,.1) 0%, rgba(0,0,0,.2) 60%, rgba(0,0,0,.6) 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-end;
+    padding-bottom: 56px; gap: 12px;
+  }
+  .hero-overlay h1 {
+    margin: 0;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", cursive;
+    font-weight: 400;
+    color: #FFFFFF;
+    font-size: clamp(34px, 5.4vw, 72px);
+    line-height: 1.2;
+    text-align: center;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, .4);
+    letter-spacing: .02em;
+  }
+  .hero-overlay h1 .click {
+    cursor: pointer;
+    display: inline-block;
+    padding: 0 .15em;
+    color: var(--yellow);
+    border-bottom: 2px dashed var(--yellow);
+    transition: transform .25s ease;
+  }
+  .hero-overlay h1 .click:hover {
+    transform: translateY(-2px) rotate(-3deg);
+    text-shadow: 0 0 24px var(--yellow);
+  }
+  .hero-overlay .tip {
+    color: rgba(255, 255, 255, .9);
+    font-size: 15px;
+    animation: wiggle 1.4s ease-in-out infinite;
+  }
+  .decor { position: absolute; pointer-events: none; font-size: 28px; opacity: .8;
+           filter: drop-shadow(0 2px 6px rgba(0,0,0,.25)); }
+  .decor.d1 { top: 14%; left: 6%;  animation: float 5s ease-in-out infinite; }
+  .decor.d2 { top: 22%; right: 6%; animation: float 6s ease-in-out infinite 1s; font-size: 24px; color: var(--yellow); }
+  .decor.d3 { top: 38%; left: 4%;  animation: float 7s ease-in-out infinite .5s; font-size: 22px; color: var(--blue); }
+  .decor.d4 { top: 46%; right: 5%; animation: float 5.5s ease-in-out infinite 1.5s; font-size: 26px; color: var(--green); }
+
+  .hero-stats { position: absolute; top: 18px; left: 18px; display: flex; gap: 10px; flex-wrap: wrap; z-index: 5; }
+  .hero-stats .pill {
+    background: rgba(255, 255, 255, .85); backdrop-filter: blur(10px);
+    padding: 8px 14px; border-radius: 9999px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.1); font-size: 14px;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-weight: bold; color: var(--ink);
+  }
+  .hero-stats .pill.streak .v { color: var(--orange); font-weight: 700; }
+
+  /* User name display — top right */
+  .user-tag {
+    position: absolute; top: 18px; right: 18px; z-index: 5;
+    background: rgba(255, 255, 255, .85); backdrop-filter: blur(10px);
+    padding: 8px 16px; border-radius: 9999px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.1); font-size: 14px;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-weight: bold; color: var(--ink);
+  }
+
+  /* ---------- Wave divider ---------- */
+  .wave-divider { margin-top: -1px; }
+  .wave-divider svg { display: block; width: 100%; height: 60px; }
+
+  /* ---------- Section wrappers ---------- */
+  .section-wrap {
+    padding: 0;
+    margin: 0;
+  }
+  .section-wrap.pink { background: var(--pink); }
+  .section-wrap.white { background: #FFFFFF; }
+
+  /* ---------- Section anchors ---------- */
+  .chapter-anchor {
+    text-align: center;
+    padding: 20px 24px 8px;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", cursive;
+    font-size: clamp(22px, 2.4vw, 28px);
+    color: var(--text-muted);
+    user-select: none;
+  }
+  .chapter-anchor .num {
+    display: block;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", cursive;
+    font-size: 13px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    color: var(--text-muted);
+  }
+
+  /* ---------- iframes ---------- */
+  .frame {
+    width: 100%;
+    border: 0;
+    display: block;
+    background: transparent;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* ---------- Nickname modal ---------- */
+  .nickname-overlay {
+    position: fixed; inset: 0;
+    background: rgba(43, 42, 40, .45);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 24px;
+  }
+  .nickname-overlay.hidden { display: none; }
+  .nickname-card {
+    background: #FFFFFF;
+    border-radius: 20px;
+    padding: 40px 36px 36px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px -10px rgba(43, 42, 40, .3);
+    animation: popIn .4s cubic-bezier(.2,.8,.3,1);
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(.88) translateY(24px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .nickname-card h2 {
+    margin: 0 0 8px;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", cursive;
+    font-size: 26px;
+    font-weight: 400;
+    color: var(--ink);
+  }
+  .nickname-card .sub {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+  }
+  .nickname-card input {
+    width: 100%;
+    border: none;
+    border-bottom: 2px solid var(--ink);
+    padding: 10px 4px;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", cursive;
+    font-size: 20px;
+    text-align: center;
+    color: var(--ink);
+    background: transparent;
+    outline: none;
+    margin-bottom: 24px;
+  }
+  .nickname-card input:focus { border-bottom-color: var(--accent); }
+  .nickname-card button {
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", cursive;
+    font-size: 18px;
+    padding: 10px 40px;
+    border: 2px solid var(--ink);
+    border-radius: 9999px;
+    background: var(--ink);
+    color: #FFFFFF;
+    cursor: pointer;
+    transition: transform .2s ease, background .2s ease;
+  }
+  .nickname-card button:hover { background: var(--accent); border-color: var(--accent); transform: translateY(-1px); }
+  .nickname-card button:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ---------- Fireworks ---------- */
+  .fw-layer { position: fixed; inset: 0; pointer-events: none; z-index: 9998; overflow: hidden; }
+  .fw {
+    position: absolute; width: 8px; height: 8px; border-radius: 50%;
+    transform: translate(-50%, -50%);
+    animation: fw-burst 1.4s cubic-bezier(.2,.7,.2,1) forwards;
+  }
+  @keyframes fw-burst {
+    0%   { transform: translate(-50%, -50%) scale(.2); opacity: 1; }
+    60%  { opacity: 1; }
+    100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(.4); opacity: 0; }
+  }
+  .fw-ring {
+    position: absolute; width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid var(--c);
+    transform: translate(-50%, -50%) scale(.1); opacity: 0;
+    animation: fw-ring 1.1s ease-out forwards;
+  }
+  @keyframes fw-ring {
+    0%   { transform: translate(-50%, -50%) scale(.1); opacity: .9; }
+    100% { transform: translate(-50%, -50%) scale(8); opacity: 0; }
+  }
+
+  /* ---------- Animations ---------- */
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-12px); }
+  }
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(-3deg); }
+    50%      { transform: rotate(3deg); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== Nickname Modal ==================== -->
+<div class="nickname-overlay hidden" id="nicknameOverlay">
+  <div class="nickname-card">
+    <h2 id="nicknameTitle">请取一个您的专属昵称吧～</h2>
+    <p class="sub" id="nicknameSub">这个名字会陪你一起记录健康旅程</p>
+    <input type="text" id="nicknameInput" maxlength="20" placeholder="输入昵称..." autocomplete="off" />
+    <br/>
+    <button id="nicknameConfirm">确认</button>
+  </div>
+</div>
+
+<header class="hero">
+  <img class="hero-img" src="assets/images/hero.png" alt="健康生活封面" />
+  <div class="hero-stats">
+    <div class="pill streak">🔥 <span>连续打卡</span> <span class="v" id="streakCount">0</span> <span>天</span></div>
+  </div>
+  <div class="user-tag" id="userTag" style="display:none;"><span id="userNameDisplay"></span></div>
+  <div class="hero-overlay">
+    <h1 id="heroTitle">How do you keep <span class="click" id="healthyWord">healthy</span>?</h1>
+    <p class="tip" id="heroTip">点击 healthy 试试看 ✨</p>
+  </div>
+</header>
+
+<div class="wave-divider">
+  <svg viewBox="0 0 1440 60" preserveAspectRatio="none">
+    <path d="M0,30 C240,60 480,0 720,30 C960,60 1200,0 1440,30 L1440,60 L0,60 Z" fill="#FFFFFF"/>
+  </svg>
+</div>
+
+<div class="fw-layer" id="fwLayer" aria-hidden="true"></div>
+
+<!-- Section 01 · Team (white) -->
+<div class="section-wrap white" id="sec-wrap-team">
+  <div class="chapter-anchor" id="sec-team"></div>
+  <iframe class="frame" scrolling="no" src="components/team.html" style="height: 700px;" title="Team"></iframe>
+</div>
+
+<!-- Section 02 · Tangram (pink) -->
+<div class="section-wrap pink" id="sec-wrap-tangram">
+  <div class="chapter-anchor" id="sec-tangram"></div>
+  <iframe class="frame" scrolling="no" src="components/tangram.html" style="height: 650px;" title="Tangram"></iframe>
+</div>
+
+<!-- Section 03 · Health Loop (white) -->
+<div class="section-wrap white" id="sec-wrap-loop">
+  <div class="chapter-anchor" id="sec-loop"></div>
+  <iframe class="frame" scrolling="no" src="components/domino.html" style="height: 700px;" title="Health Loop"></iframe>
+</div>
+
+<!-- Section 04 · Mortise (pink) -->
+<div class="section-wrap pink" id="sec-wrap-mortise">
+  <div class="chapter-anchor" id="sec-mortise"></div>
+  <iframe class="frame" scrolling="no" src="components/mortise.html" style="height: 700px;" title="Mortise"></iframe>
+  <div style="display:flex; justify-content:flex-end; padding:12px 36px 20px;">
+    <a href="pages/mortise.html" target="_blank" rel="noopener"
+       style="display:inline-flex; align-items:center; gap:12px;
+              font-family:'Ma Shan Zheng','ZCOOL KuaiLe',cursive;
+              font-size:14px; line-height:1.5; color:#2B2A28;
+              text-decoration:none; max-width:340px; text-align:right;
+              transform:rotate(-1.5deg);">
+      <span>点击请了解如何制定更棒的行动与计划～</span>
+      <svg width="40" height="40" viewBox="0 0 64 64" aria-hidden="true">
+        <path d="M10 32 Q 28 22, 46 32" fill="none" stroke="#2B2A28" stroke-width="3" stroke-linecap="round"/>
+        <path d="M40 24 L 48 32 L 40 40" fill="none" stroke="#2B2A28" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+  </div>
+</div>
+
+<!-- Section 05 · Check-in (white) -->
+<div class="section-wrap white" id="sec-wrap-checkin">
+  <div class="chapter-anchor" id="sec-checkin"></div>
+  <iframe class="frame" scrolling="no" src="components/checkin.html" style="height: 850px;" title="Check-in"></iframe>
+</div>
+
+<script>
+/* =====================================================================
+   PAGE_DATA — 所有可编辑文字集中在这里
+   后端可通过 window.PAGE_DATA = {...} 在脚本运行前注入覆盖
+   ===================================================================== */
+const PAGE_DATA = Object.assign({
+  heroImage: 'assets/images/hero.png',
+  heroTitleHtml: 'How do you keep <span class="click" id="healthyWord">healthy</span>?',
+  heroTip: '点击 healthy 试试看 ✨',
+  nicknameTitle: '请取一个您的专属昵称吧～',
+  nicknameSub: '这个名字会陪你一起记录健康旅程',
+  nicknamePlaceholder: '输入昵称...',
+  nicknameConfirm: '确认',
+  sections: [
+    { id: 'sec-team',    num: 'Section 01', title: '一封信来自我们' },
+    { id: 'sec-tangram', num: 'Section 02', title: '七巧板 · 健康行为小知识拼图' },
+    { id: 'sec-loop',    num: 'Section 03', title: '多米诺骨牌 · 环环相扣的健康行为' },
+    { id: 'sec-mortise', num: 'Section 04', title: '一锤入榫 · 计划与行动' },
+    { id: 'sec-checkin', num: 'Section 05', title: '每日打卡 · 一日一行' },
+  ],
+  mortiseLinkHtml: '点击请了解如何制定更棒的行动与计划～',
+  checkinIframeTitle: 'Check-in',
+}, window.PAGE_DATA || {});
+
+/* =====================================================================
+   Render section anchors from PAGE_DATA
+   ===================================================================== */
+(function renderSections() {
+  PAGE_DATA.sections.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (el) {
+      el.innerHTML = `<span class="num">${s.num}</span>${s.title}`;
+    }
+  });
+})();
+
+/* Apply hero content */
+(function renderHero() {
+  const titleEl = document.getElementById('heroTitle');
+  if (titleEl && PAGE_DATA.heroTitleHtml) titleEl.innerHTML = PAGE_DATA.heroTitleHtml;
+  const tipEl = document.getElementById('heroTip');
+  if (tipEl && PAGE_DATA.heroTip) tipEl.textContent = PAGE_DATA.heroTip;
+  const imgEl = document.querySelector('.hero-img');
+  if (imgEl && PAGE_DATA.heroImage) imgEl.src = PAGE_DATA.heroImage;
+})();
+
+/* Apply nickname modal text from PAGE_DATA */
+(function renderNicknameModal() {
+  const t = document.getElementById('nicknameTitle');
+  if (t && PAGE_DATA.nicknameTitle) t.textContent = PAGE_DATA.nicknameTitle;
+  const s = document.getElementById('nicknameSub');
+  if (s && PAGE_DATA.nicknameSub) s.textContent = PAGE_DATA.nicknameSub;
+  const inp = document.getElementById('nicknameInput');
+  if (inp && PAGE_DATA.nicknamePlaceholder) inp.placeholder = PAGE_DATA.nicknamePlaceholder;
+  const btn = document.getElementById('nicknameConfirm');
+  if (btn && PAGE_DATA.nicknameConfirm) btn.textContent = PAGE_DATA.nicknameConfirm;
+})();
+
+/* =====================================================================
+   User / Nickname
+   ===================================================================== */
+const HEALTH_USER_KEY = 'healthUser';
+
+function resolveUser() {
+  try {
+    const raw = localStorage.getItem(HEALTH_USER_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) { return null; }
+}
+
+async function saveUser(name) {
+  const existing = resolveUser();
+
+  /* Try backend first — returns { id, name, created_at } */
+  try {
+    const resp = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, id: existing ? existing.id : undefined }),
+    });
+    if (resp.ok) {
+      const user = await resp.json();
+      localStorage.setItem(HEALTH_USER_KEY, JSON.stringify(user));
+      return user;
+    }
+  } catch (e) { /* backend offline, fall back to local */ }
+
+  /* Local fallback */
+  const user = {
+    name: name,
+    id: existing ? existing.id : ('u-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now()),
+    created_at: existing ? existing.created_at : new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  localStorage.setItem(HEALTH_USER_KEY, JSON.stringify(user));
+  return user;
+}
+
+function showNicknameModal() {
+  document.getElementById('nicknameOverlay').classList.remove('hidden');
+}
+
+function hideNicknameModal() {
+  document.getElementById('nicknameOverlay').classList.add('hidden');
+}
+
+function displayUser(name) {
+  const tag = document.getElementById('userTag');
+  const display = document.getElementById('userNameDisplay');
+  display.textContent = '你好，' + name;
+  tag.style.display = 'inline-flex';
+}
+
+/* =====================================================================
+   Tracking stub (mirrors health-detail.html contract)
+   ===================================================================== */
+const TRACK_ENDPOINT = (window.TRACK_ENDPOINT || '/api/track/event');
+function track(payload) {
+  const body = Object.assign({ ts: Date.now() }, payload);
+  try {
+    const user = resolveUser();
+    if (user) { body.user_id = user.id; body.user_name = user.name; }
+  } catch (e) {}
+  if (window.__HEALTH_DEBUG__) console.log('[track]', body);
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(TRACK_ENDPOINT, JSON.stringify(body));
+      return;
+    }
+    fetch(TRACK_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      keepalive: true,
+    }).catch(() => {});
+  } catch (e) {}
+}
+
+/* =====================================================================
+   Nickname flow
+   ===================================================================== */
+const nicknameOverlay = document.getElementById('nicknameOverlay');
+const nicknameInput   = document.getElementById('nicknameInput');
+const nicknameConfirm = document.getElementById('nicknameConfirm');
+
+function initNickname() {
+  const user = resolveUser();
+  if (user && user.name && user.name !== '匿名同学') {
+    /* Already set — show display only. */
+    displayUser(user.name);
+    hideNicknameModal();
+    return;
+  }
+  /* Show modal. */
+  showNicknameModal();
+}
+
+nicknameConfirm.addEventListener('click', () => {
+  const name = nicknameInput.value.trim();
+  if (!name) {
+    nicknameInput.focus();
+    return;
+  }
+  const user = saveUser(name);
+  track({ type: 'set_nickname', name: user.name });
+  displayUser(user.name);
+  hideNicknameModal();
+});
+
+nicknameInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') nicknameConfirm.click();
+});
+
+/* =====================================================================
+   Streak counter
+   ===================================================================== */
+function updateStreak() {
+  const el = document.getElementById('streakCount');
+  if (!el) return;
+  try {
+    const raw = localStorage.getItem('healthDoneDates');
+    if (!raw) { el.textContent = '0'; return; }
+    const dates = JSON.parse(raw);
+    if (!Array.isArray(dates)) { el.textContent = '0'; return; }
+    /* Calculate consecutive days ending today or yesterday. */
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dateSet = new Set(dates);
+    let streak = 0;
+    let check = new Date(today);
+    /* Start from today; if today not done, check from yesterday. */
+    if (!dateSet.has(toKey(check))) {
+      check.setDate(check.getDate() - 1);
+    }
+    while (dateSet.has(toKey(check))) {
+      streak++;
+      check.setDate(check.getDate() - 1);
+    }
+    el.textContent = String(streak);
+  } catch (e) { el.textContent = '0'; }
+}
+
+function toKey(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
+/* =====================================================================
+   Fireworks
+   ===================================================================== */
+const fwLayer = document.getElementById('fwLayer');
+
+function launchFireworks(originX, originY, palette, count) {
+  const n = count || 28;
+  const colors = palette || ['#F8D053', '#799863', '#cb6851', '#7091b6', '#5bb0d4', '#E07A2E', '#C24A1F'];
+  const ring = document.createElement('div');
+  ring.className = 'fw-ring';
+  ring.style.left = originX + 'px';
+  ring.style.top  = originY + 'px';
+  ring.style.setProperty('--c', colors[0]);
+  fwLayer.appendChild(ring);
+  setTimeout(() => ring.remove(), 1200);
+  for (let i = 0; i < n; i++) {
+    const angle = (i / n) * Math.PI * 2 + Math.random() * .4;
+    const dist  = 90 + Math.random() * 80;
+    const dx = Math.cos(angle) * dist;
+    const dy = Math.sin(angle) * dist;
+    const dot = document.createElement('div');
+    dot.className = 'fw';
+    dot.style.left = originX + 'px';
+    dot.style.top  = originY + 'px';
+    dot.style.background = colors[i % colors.length];
+    dot.style.setProperty('--dx', dx + 'px');
+    dot.style.setProperty('--dy', dy + 'px');
+    fwLayer.appendChild(dot);
+    setTimeout(() => dot.remove(), 1500);
+  }
+}
+
+/* Bind fireworks to the "healthy" word after DOM renders */
+setTimeout(() => {
+  const healthyWord = document.getElementById('healthyWord');
+  if (healthyWord) {
+    healthyWord.addEventListener('click', () => {
+      const r = healthyWord.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      launchFireworks(cx, cy, ['#F8D053', '#cb6851', '#5bb0d4', '#799863', '#E07A2E', '#C24A1F'], 30);
+      setTimeout(() => launchFireworks(cx - 100, cy + 40, ['#799863', '#5bb0d4'], 22), 220);
+      setTimeout(() => launchFireworks(cx + 120, cy - 30, ['#F8D053', '#E07A2E', '#C24A1F'], 22), 420);
+    });
+  }
+}, 0);
+
+/* =====================================================================
+   Auto-size iframes
+   ===================================================================== */
+function fitIframe(iframe) {
+  const measure = () => {
+    try {
+      const doc = iframe.contentDocument;
+      if (!doc) return;
+      const h = Math.max(
+        doc.documentElement.scrollHeight,
+        doc.body ? doc.body.scrollHeight : 0
+      );
+      if (h > 0) iframe.style.height = h + 'px';
+    } catch (e) { /* cross-origin */ }
+  };
+  iframe.addEventListener('load', () => {
+    measure();
+    try {
+      const ro = new ResizeObserver(measure);
+      if (iframe.contentDocument && iframe.contentDocument.body) {
+        ro.observe(iframe.contentDocument.body);
+      }
+    } catch (e) {}
+    window.addEventListener('resize', measure);
+    setInterval(measure, 1500);
+  });
+}
+document.querySelectorAll('iframe.frame').forEach(fitIframe);
+
+/* =====================================================================
+   Boot
+   ===================================================================== */
+initNickname();
+updateStreak();
+
+/* Periodically refresh streak in case checkin.html updates localStorage. */
+setInterval(updateStreak, 3000);
+</script>
+</body>
+</html>

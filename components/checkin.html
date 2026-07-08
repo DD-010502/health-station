@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>打卡 · 一日一行</title>
+<style>
+  :root {
+    --ink: #2B2A28;
+    --grey: #8A8580;
+    --accent: #C24A1F;
+    --orange: #E07A2E;
+    --green: #4F9A55;
+    --green-soft: #D8EBD4;
+    --orange-soft: #FBE4CC;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: transparent;
+    color: var(--ink);
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", "PingFang SC", cursive, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .stage {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 16px 32px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  /* ---------- TOP: TODO ---------- */
+  .todo-card {
+    border: 2px solid var(--ink);
+    border-radius: 14px;
+    padding: 22px 26px 26px;
+    background: #FBF7EC;
+  }
+  .todo-card h2 {
+    margin: 0 0 14px;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", "PingFang SC", cursive, sans-serif;
+    font-weight: 600;
+    font-size: 22px;
+  }
+
+  .todo-input {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .todo-input input {
+    font: inherit;
+    font-size: 16px;
+    padding: 10px 14px;
+    border: 2px solid var(--ink);
+    border-radius: 8px;
+    background: #FFFFFF;
+    color: var(--ink);
+    outline: none;
+  }
+  .todo-input input:focus { box-shadow: 0 0 0 3px rgba(194, 74, 31, .18); }
+  .todo-input button {
+    font: inherit;
+    font-size: 15px;
+    padding: 10px 18px;
+    border: 2px solid var(--ink);
+    border-radius: 8px;
+    background: var(--ink);
+    color: #FBF7EC;
+    cursor: pointer;
+    transition: transform .15s ease, background .15s ease;
+  }
+  .todo-input button:hover { transform: translateY(-1px); }
+  .todo-input button:active { transform: translateY(0); }
+
+  .todo-list {
+    list-style: none;
+    margin: 0; padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  @media (max-width: 700px) {
+    .todo-list { grid-template-columns: 1fr; }
+  }
+
+  .todo-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+    background: #FFFFFF;
+    transition: transform .55s cubic-bezier(.55,.05,.25,1), opacity .35s ease;
+    will-change: transform, opacity;
+  }
+  .todo-item.swept { transform: translateX(-110%); opacity: 0; pointer-events: none; }
+  .todo-item .label {
+    font-size: 16px;
+    line-height: 1.4;
+    word-break: break-word;
+    position: relative;
+  }
+  .todo-item .label .count { color: var(--grey); font-size: 12px; margin-left: 6px; }
+  .todo-item.struck .label::after {
+    content: "";
+    position: absolute;
+    left: 0; top: 50%;
+    width: 100%;
+    height: 2.5px;
+    background: var(--accent);
+    border-radius: 1.5px;
+    transform: scaleX(0);
+    transform-origin: left center;
+    animation: strikethrough .35s ease forwards;
+  }
+  @keyframes strikethrough {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+  .todo-item.struck .label { color: var(--grey); }
+
+  .todo-item button {
+    font: inherit;
+    font-size: 14px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 2px solid var(--ink);
+    background: transparent;
+    cursor: pointer;
+  }
+  .todo-item .check { background: var(--green); color: #FFFFFF; border-color: var(--green); }
+  .todo-item .check:hover { background: #3F8046; }
+  .todo-item .del { color: var(--ink); }
+  .todo-item .del:hover { background: var(--ink); color: #FFFFFF; }
+
+  .todo-empty {
+    text-align: center;
+    color: var(--grey);
+    font-size: 14px;
+    padding: 18px 0;
+  }
+
+  /* ---------- BOTTOM: Mona Lisa (left) + Calendar (right) ---------- */
+  .bottom {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 32px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .bottom { grid-template-columns: 1fr; }
+  }
+  .mona-card {
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .mona-card img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 0;
+    mix-blend-mode: multiply;
+  }
+  .mona-card .caption {
+    margin-top: 12px;
+    text-align: center;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", "PingFang SC", cursive, sans-serif;
+    font-size: 13px;
+    color: var(--ink);
+  }
+
+  .cal-card {
+    border: 2px solid var(--ink);
+    border-radius: 14px;
+    padding: 22px 26px 28px;
+    background: #FBF7EC;
+  }
+  .cal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+  .cal-head .nav { display: flex; gap: 8px; align-items: center; }
+  .cal-head button {
+    font: inherit;
+    font-size: 16px;
+    width: 36px; height: 36px;
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+    background: #FFFFFF;
+    cursor: pointer;
+    transition: transform .15s ease, background .15s ease, color .15s ease;
+  }
+  .cal-head button:hover { background: var(--ink); color: #FBF7EC; transform: translateY(-1px); }
+  .cal-head select {
+    font: inherit;
+    font-size: 15px;
+    padding: 6px 12px;
+    border: 2px solid var(--ink);
+    border-radius: 8px;
+    background: #FFFFFF;
+    color: var(--ink);
+    outline: none;
+    cursor: pointer;
+  }
+  .cal-head .meta {
+    flex: 1;
+    text-align: center;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", "PingFang SC", cursive, sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .cal-head .meta .y {
+    display: block;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", "PingFang SC", cursive, sans-serif;
+    font-size: 12px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--grey);
+    margin-top: 2px;
+  }
+
+  .cal-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-bottom: 6px;
+    font-size: 12px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--grey);
+    text-align: center;
+  }
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    touch-action: pan-y;
+  }
+  .cal-day {
+    aspect-ratio: 1 / 1;
+    border: 1.5px solid var(--ink);
+    border-radius: 6px;
+    background: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", "PingFang SC", cursive, sans-serif;
+    color: var(--ink);
+    font-size: 16px;
+    transition: background .25s ease, color .25s ease, transform .15s ease;
+    cursor: pointer;
+  }
+  .cal-day.outside { color: #C4BFB6; border-color: #D6D0C4; cursor: default; }
+  .cal-day.today {
+    outline: 2px dashed var(--accent);
+    outline-offset: 2px;
+  }
+  .cal-day.done {
+    background: var(--green-soft);
+    color: var(--green);
+  }
+  .cal-day.done .num { opacity: 0; }
+  .cal-day.done::after {
+    content: "";
+    width: 48%;
+    height: 48%;
+    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M3 12 L9 18 L21 6' fill='none' stroke='%234F9A55' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'/></svg>") center / contain no-repeat;
+  }
+  .cal-day.today.done {
+    outline: 2px dashed var(--accent);
+    outline-offset: 2px;
+  }
+  .cal-day.selected {
+    box-shadow: 0 0 0 3px rgba(194, 74, 31, .4);
+    transform: scale(1.05);
+  }
+
+  .cal-summary {
+    margin-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 12px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--grey);
+  }
+  .cal-summary strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- History popover ---------- */
+  .history-pop {
+    margin-top: 12px;
+    padding: 14px 18px;
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+    background: #FFFFFF;
+    display: none;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .history-pop.show { display: block; }
+  .history-pop .date-label {
+    font-weight: bold;
+    margin-bottom: 6px;
+    color: var(--ink);
+  }
+  .history-pop ul {
+    margin: 0; padding: 0 0 0 18px;
+    list-style: "✅ ";
+  }
+  .history-pop li {
+    margin: 3px 0;
+  }
+  .history-pop .empty-hint {
+    color: var(--grey);
+  }
+</style>
+</head>
+<body>
+  <main class="stage">
+    <!-- TOP: TODO -->
+    <section class="todo-card">
+      <h2 id="checkinTitle"></h2>
+
+      <form class="todo-input" id="todoForm">
+        <input id="todoText" type="text" maxlength="40" placeholder="" />
+        <button type="submit" id="addBtn"></button>
+      </form>
+
+      <ul class="todo-list" id="todoList"></ul>
+      <div class="todo-empty" id="todoEmpty"></div>
+    </section>
+
+    <!-- BOTTOM: Mona Lisa + Calendar -->
+    <section class="bottom">
+      <div class="mona-card">
+        <img src="../assets/images/mona-lisa.png" alt="蒙娜丽莎" />
+        <div class="caption" id="monaCaption"></div>
+      </div>
+
+      <div class="cal-card">
+        <div class="cal-head">
+          <div class="nav">
+            <button id="prevMonth" aria-label="上一月">‹</button>
+          </div>
+          <div class="meta">
+            <span id="monthLabel">一月</span>
+            <span class="y">2026</span>
+          </div>
+          <div class="nav">
+            <select id="monthPick" aria-label="选择月份"></select>
+            <button id="nextMonth" aria-label="下一月">›</button>
+          </div>
+        </div>
+        <div class="cal-weekdays" aria-hidden="true">
+          <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="cal-summary">
+          <span>本月已打卡 <strong id="monthDone">0</strong> 天</span>
+          <span>累计 <strong id="yearDone">0</strong> 天</span>
+        </div>
+        <!-- History popover -->
+        <div class="history-pop" id="historyPop">
+          <div class="date-label" id="historyDate"></div>
+          <div id="historyContent"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+<script>
+/* =====================================================================
+   CHECKIN_DATA — all editable text, backend-injectable
+   ===================================================================== */
+const CHECKIN_DATA = Object.assign({
+  title: '健康生活 小清单',
+  placeholder: '写下今天想打卡的小事…',
+  addButton: '添加',
+  emptyHint: '还没有打卡项，写一个开始吧 ✨',
+  monaCaption: '看着她，你今天也要微笑打卡哦',
+}, window.CHECKIN_DATA || {});
+
+(function renderCheckinText() {
+  const t = document.getElementById('checkinTitle');
+  if (t && CHECKIN_DATA.title) t.textContent = CHECKIN_DATA.title;
+  const inp = document.getElementById('todoText');
+  if (inp && CHECKIN_DATA.placeholder) inp.placeholder = CHECKIN_DATA.placeholder;
+  const btn = document.getElementById('addBtn');
+  if (btn && CHECKIN_DATA.addButton) btn.textContent = CHECKIN_DATA.addButton;
+  const empty = document.getElementById('todoEmpty');
+  if (empty && CHECKIN_DATA.emptyHint) empty.textContent = CHECKIN_DATA.emptyHint;
+  const cap = document.getElementById('monaCaption');
+  if (cap && CHECKIN_DATA.monaCaption) cap.textContent = CHECKIN_DATA.monaCaption;
+})();
+
+/* =========================================================
+   Data model
+   - todos: current checklist items (each repeatable)
+   - doneDates: Set of "YYYY-MM-DD" strings that are done
+   - doneTasks: { "YYYY-MM-DD": ["task-label-1", ...] }
+   ========================================================= */
+const YEAR = 2026;
+const MONTH_NAMES = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+const STORAGE_TODOS = 'healthTodos';
+const STORAGE_DONE_DATES = 'healthDoneDates';
+const STORAGE_DONE_TASKS = 'healthDoneTasks';
+
+let todos = [];
+const doneDates = new Set();
+const doneTasks = {};   /* dateKey → [label, ...] */
+
+let viewMonth = new Date().getMonth();
+let selectedDate = null;
+
+/* ---------- DOM refs ---------- */
+const todoForm  = document.getElementById('todoForm');
+const todoText  = document.getElementById('todoText');
+const todoList  = document.getElementById('todoList');
+const todoEmpty = document.getElementById('todoEmpty');
+
+const prevMonthBtn  = document.getElementById('prevMonth');
+const nextMonthBtn  = document.getElementById('nextMonth');
+const monthPick     = document.getElementById('monthPick');
+const monthLabel    = document.getElementById('monthLabel');
+const calGrid       = document.getElementById('calGrid');
+const monthDoneEl   = document.getElementById('monthDone');
+const yearDoneEl    = document.getElementById('yearDone');
+const historyPop    = document.getElementById('historyPop');
+const historyDate   = document.getElementById('historyDate');
+const historyContent = document.getElementById('historyContent');
+
+/* ---------- Helpers ---------- */
+function id() { return Math.random().toString(36).slice(2, 9); }
+function pad(n) { return String(n).padStart(2, '0'); }
+function todayStr() {
+  const t = new Date();
+  return `${YEAR}-${pad(t.getMonth()+1)}-${pad(t.getDate())}`;
+}
+function isToday(y, mIdx, d) {
+  const t = new Date();
+  return t.getFullYear() === y && t.getMonth() === mIdx && t.getDate() === d;
+}
+
+/* ---------- Persistence (localStorage + backend sync) ---------- */
+const CHECKIN_API = (window.CHECKIN_API || '/api/checkin');
+
+function saveTodos() {
+  try { localStorage.setItem(STORAGE_TODOS, JSON.stringify(todos)); } catch(e) {}
+  /* Background sync to backend */
+  try {
+    fetch(CHECKIN_API + '/todos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ todos }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch(e) {}
+}
+
+function saveDoneData() {
+  try {
+    localStorage.setItem(STORAGE_DONE_DATES, JSON.stringify([...doneDates]));
+    localStorage.setItem(STORAGE_DONE_TASKS, JSON.stringify(doneTasks));
+  } catch(e) {}
+}
+
+async function loadData() {
+  /* Try backend first */
+  try {
+    const resp = await fetch(CHECKIN_API + '/todos');
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.todos) todos = data.todos;
+      if (data.doneDates) data.doneDates.forEach(s => doneDates.add(s));
+      if (data.doneTasks) Object.assign(doneTasks, data.doneTasks);
+      return;
+    }
+  } catch(e) {}
+  /* Fall back to localStorage */
+  try {
+    const td = localStorage.getItem(STORAGE_TODOS);
+    if (td) todos = JSON.parse(td);
+  } catch(e) { todos = []; }
+  try {
+    const dd = localStorage.getItem(STORAGE_DONE_DATES);
+    if (dd) { const arr = JSON.parse(dd); arr.forEach(s => doneDates.add(s)); }
+  } catch(e) {}
+  try {
+    const dt = localStorage.getItem(STORAGE_DONE_TASKS);
+    if (dt) Object.assign(doneTasks, JSON.parse(dt));
+  } catch(e) {}
+}
+
+/* ---------- Tracking ---------- */
+function track(payload) {
+  const body = Object.assign({ type: 'checkin', ts: Date.now() }, payload);
+  try {
+    const raw = localStorage.getItem('healthUser');
+    if (raw) {
+      const u = JSON.parse(raw);
+      body.user_id = u.id; body.user_name = u.name;
+    }
+  } catch(e) {}
+  if (window.__HEALTH_DEBUG__) console.log('[track]', body);
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon('/api/track/event', JSON.stringify(body));
+    } else {
+      fetch('/api/track/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), keepalive: true }).catch(() => {});
+    }
+  } catch(e) {}
+}
+
+/* ---------- Todo list ---------- */
+function renderTodos() {
+  todoList.innerHTML = '';
+  if (todos.length === 0) {
+    todoEmpty.textContent = CHECKIN_DATA.emptyHint || '还没有打卡项，写一个开始吧 ✨';
+    todoEmpty.style.display = 'block';
+    saveTodos();
+    return;
+  }
+  todoEmpty.style.display = 'none';
+  todos.forEach(t => {
+    const li = document.createElement('li');
+    li.className = 'todo-item';
+    li.dataset.id = t.id;
+    li.innerHTML = `
+      <span class="label">${escapeHtml(t.label)}${t.streak > 0 ? `<span class="count">· 完成过 ${t.streak} 次</span>` : ''}</span>
+      <button class="check" type="button" aria-label="打卡">打卡</button>
+      <button class="del" type="button" aria-label="删除">删</button>
+    `;
+    li.querySelector('.check').addEventListener('click', () => checkIn(li, t));
+    li.querySelector('.del').addEventListener('click', () => removeTodo(t.id));
+    todoList.appendChild(li);
+  });
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+function addTodo(label) {
+  const trimmed = label.trim();
+  if (!trimmed) return;
+  todos.push({ id: id(), label: trimmed, streak: 0, createdAt: new Date().toISOString() });
+  saveTodos();
+  track({ event: 'add_task', task_label: trimmed });
+  renderTodos();
+}
+
+function removeTodo(todoId) {
+  const t = todos.find(x => x.id === todoId);
+  todos = todos.filter(x => x.id !== todoId);
+  saveTodos();
+  if (t) track({ event: 'remove_task', task_label: t.label });
+  renderTodos();
+}
+
+/* Check-in flow */
+function checkIn(li, t) {
+  if (li.classList.contains('struck')) return; /* already checked */
+
+  /* Strike-through and keep visible */
+  li.classList.add('struck');
+
+  /* Disable the check button, change label */
+  const checkBtn = li.querySelector('.check');
+  if (checkBtn) {
+    checkBtn.disabled = true;
+    checkBtn.textContent = '✓';
+    checkBtn.style.opacity = '0.5';
+    checkBtn.style.cursor = 'default';
+  }
+
+  t.streak++;
+  saveTodos();
+
+  const ts = todayStr();
+  doneDates.add(ts);
+  if (!doneTasks[ts]) doneTasks[ts] = [];
+  doneTasks[ts].push(t.label);
+  saveDoneData();
+
+  track({ event: 'checkin', task_label: t.label, date: ts });
+
+  setTimeout(renderCalendar, 60);
+  setTimeout(() => {
+    const todayCell = calGrid.querySelector('.cal-day.today');
+    if (todayCell) {
+      todayCell.animate(
+        [{ transform: 'scale(1.08)' }, { transform: 'scale(1)' }],
+        { duration: 380, easing: 'ease-out' }
+      );
+    }
+  }, 320);
+}
+
+todoForm.addEventListener('submit', e => {
+  e.preventDefault();
+  addTodo(todoText.value);
+  todoText.value = '';
+  todoText.focus();
+});
+
+/* ---------- Calendar ---------- */
+function renderMonthPick() {
+  monthPick.innerHTML = MONTH_NAMES.map((name, i) =>
+    `<option value="${i}" ${i === viewMonth ? 'selected' : ''}>${i+1} ${name}</option>`
+  ).join('');
+}
+
+function showHistory(dateKey) {
+  selectedDate = dateKey;
+  historyDate.textContent = dateKey;
+  const tasks = doneTasks[dateKey];
+  if (tasks && tasks.length > 0) {
+    historyContent.innerHTML = '<ul>' + tasks.map(l => `<li>${escapeHtml(l)}</li>`).join('') + '</ul>';
+  } else if (doneDates.has(dateKey)) {
+    historyContent.innerHTML = '<span class="empty-hint">这天打卡了，但没有记录具体事项</span>';
+  } else {
+    historyContent.innerHTML = '<span class="empty-hint">这天还没有打卡记录</span>';
+  }
+  historyPop.classList.add('show');
+}
+
+function renderCalendar() {
+  monthLabel.textContent = MONTH_NAMES[viewMonth];
+  renderMonthPick();
+
+  calGrid.innerHTML = '';
+  const firstDay = new Date(YEAR, viewMonth, 1).getDay();
+  const daysInMonth = new Date(YEAR, viewMonth + 1, 0).getDate();
+  const prevDays = new Date(YEAR, viewMonth, 0).getDate();
+
+  const cells = [];
+  for (let i = firstDay - 1; i >= 0; i--) {
+    cells.push({ y: YEAR, m: viewMonth - 1, d: prevDays - i, outside: true });
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    cells.push({ y: YEAR, m: viewMonth, d, outside: false });
+  }
+  let trailing = 1;
+  while (cells.length < 42) {
+    cells.push({ y: YEAR, m: viewMonth + 1, d: trailing++, outside: true });
+  }
+
+  cells.forEach(c => {
+    const cell = document.createElement('div');
+    cell.className = 'cal-day';
+    if (c.outside) cell.classList.add('outside');
+    if (!c.outside && isToday(c.y, c.m, c.d)) cell.classList.add('today');
+
+    const dateKey = dateKeyOf(c);
+    if (doneDates.has(dateKey)) cell.classList.add('done');
+    if (dateKey === selectedDate) cell.classList.add('selected');
+
+    cell.dataset.dateKey = dateKey;
+    cell.innerHTML = `<span class="num">${c.d}</span>`;
+
+    /* Click handler: show history for this date */
+    if (!c.outside) {
+      cell.addEventListener('click', () => {
+        /* Remove previous selection */
+        calGrid.querySelectorAll('.cal-day.selected').forEach(el => el.classList.remove('selected'));
+        cell.classList.add('selected');
+        showHistory(dateKey);
+      });
+    }
+
+    calGrid.appendChild(cell);
+  });
+
+  const monthCount = [...doneDates].filter(s => s.startsWith(`${YEAR}-${pad(viewMonth+1)}-`)).length;
+  monthDoneEl.textContent = monthCount;
+  yearDoneEl.textContent = doneDates.size;
+}
+
+function dateKeyOf(c) {
+  const mIdx = (c.m + 12) % 12;
+  const yAdj = c.m < 0 ? YEAR - 1 : (c.m > 11 ? YEAR + 1 : YEAR);
+  return `${yAdj}-${pad(mIdx+1)}-${pad(c.d)}`;
+}
+
+/* Month navigation */
+prevMonthBtn.addEventListener('click', () => {
+  viewMonth = (viewMonth + 11) % 12;
+  renderCalendar();
+});
+nextMonthBtn.addEventListener('click', () => {
+  viewMonth = (viewMonth + 1) % 12;
+  renderCalendar();
+});
+monthPick.addEventListener('change', () => {
+  viewMonth = Number(monthPick.value);
+  renderCalendar();
+});
+
+/* ---------- Swipe for month navigation ---------- */
+let touchStartX = 0;
+calGrid.addEventListener('touchstart', (e) => {
+  touchStartX = e.touches[0].clientX;
+}, { passive: true });
+
+calGrid.addEventListener('touchend', (e) => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 60) {
+    if (dx < 0) {
+      /* Swipe left → next month */
+      viewMonth = (viewMonth + 1) % 12;
+    } else {
+      /* Swipe right → prev month */
+      viewMonth = (viewMonth + 11) % 12;
+    }
+    renderCalendar();
+  }
+});
+
+/* ---------- Init ---------- */
+loadData();
+renderTodos();
+renderCalendar();
+
+/* Show today's history by default if today is done */
+const ts = todayStr();
+if (doneDates.has(ts)) {
+  setTimeout(() => showHistory(ts), 100);
+}
+</script>
+</body>
+</html>

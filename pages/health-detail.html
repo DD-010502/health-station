@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>健康行为小知识</title>
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Liu+Jian+Mao+Cao&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #2B2A28;
+    --paper: #FDF8F5;
+    --yellow: #F8D053;
+    --orange: #E07A2E;
+    --pink:   #CB6851;
+    --blue:   #5BB0D4;
+    --green:  #799863;
+    --shadow: 0 6px 24px -8px rgba(43, 42, 40, .12);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", "PingFang SC", cursive, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-track { background: var(--paper); }
+  ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, var(--yellow), var(--pink)); border-radius: 10px; }
+
+  /* ---------- Animations ---------- */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50%      { transform: translateY(-10px); }
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(.92) translateY(20px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .reveal {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity .5s ease, transform .5s ease;
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* ---------- Top nav ---------- */
+  .top-nav {
+    position: fixed; top: 18px; left: 18px;
+    z-index: 60;
+  }
+  .back-btn {
+    background: rgba(255, 255, 255, .85);
+    backdrop-filter: blur(10px);
+    padding: 10px 18px;
+    border-radius: 9999px;
+    font-weight: bold;
+    color: var(--ink);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .1);
+    text-decoration: none;
+    font-size: 14px;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: all .25s ease;
+  }
+  .back-btn:hover { background: #FFFFFF; transform: translateY(-2px); color: var(--orange); }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    position: relative;
+    width: 100%;
+    height: clamp(280px, 42vh, 460px);
+    overflow: hidden;
+    background: #FFFFFF;
+  }
+  .hero-img {
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+    filter: saturate(1.2) contrast(1.05);
+  }
+  .hero-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.2) 60%, rgba(0,0,0,.65) 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-end;
+    padding-bottom: 44px;
+  }
+  .hero-overlay h1 {
+    margin: 0;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", cursive;
+    font-weight: 400;
+    color: #FFFFFF;
+    font-size: clamp(28px, 4.2vw, 56px);
+    line-height: 1.15;
+    text-align: center;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, .35);
+    letter-spacing: .02em;
+  }
+
+  .wave-divider { margin-top: -1px; }
+  .wave-divider svg { display: block; width: 100%; height: 60px; }
+
+  /* ---------- Layout: TOC on left, content on right ---------- */
+  .stage {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 20px 24px 40px;
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .stage { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- Cards ---------- */
+  .card {
+    background: #FFFFFF;
+    border-radius: 18px;
+    padding: 24px 28px;
+    box-shadow: var(--shadow);
+    margin-bottom: 24px;
+  }
+  .card h2 {
+    margin: 0 0 14px;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", cursive;
+    font-weight: 400;
+    font-size: 26px;
+    line-height: 1.2;
+    color: var(--ink);
+  }
+  .card .lead {
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+  .card .lead strong { color: var(--orange); }
+
+  /* ---------- Module content ---------- */
+  .module { display: none; }
+  .module.active { display: block; animation: popIn .35s ease; }
+
+  .sec-block { margin-top: 18px; }
+  .sec-block .sec-label {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink);
+    opacity: .6;
+    margin-bottom: 8px;
+  }
+  .sec-block .sec-label .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--orange);
+  }
+
+  /* ---------- PDF cards ---------- */
+  .pdf-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .pdf-tile {
+    display: flex; gap: 12px; align-items: center;
+    background: #FFFFFF;
+    border: 1.5px solid rgba(91, 176, 212, .35);
+    border-left: 4px solid var(--blue);
+    border-radius: 12px;
+    padding: 14px 16px;
+    text-decoration: none;
+    color: var(--ink);
+    transition: all .25s ease;
+    box-shadow: 0 4px 14px -8px rgba(91, 176, 212, .25);
+  }
+  .pdf-tile:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px -6px rgba(91, 176, 212, .4);
+  }
+  .pdf-tile .ico {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #DCEEFB, #C8E4F6);
+    color: var(--blue);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .pdf-tile .body { flex: 1; min-width: 0; }
+  .pdf-tile .body .t2 {
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 1.4;
+  }
+
+  /* ---------- Video cards ---------- */
+  .video-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+    margin-top: 14px;
+  }
+  .video-tile {
+    background: #FFFFFF;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 6px 20px -10px rgba(203, 104, 81, .25);
+    transition: all .3s ease;
+    cursor: pointer;
+    border: 1.5px solid rgba(203, 104, 81, .15);
+  }
+  .video-tile:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px -8px rgba(203, 104, 81, .4);
+  }
+  .video-tile .cover {
+    aspect-ratio: 16 / 10;
+    background: linear-gradient(135deg, #FFE6D6 0%, #FFD5C9 100%);
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .video-tile .cover .play {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: rgba(255, 255, 255, .9);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--pink);
+    font-size: 22px;
+    box-shadow: 0 6px 18px rgba(203, 104, 81, .35);
+    transition: transform .25s ease;
+  }
+  .video-tile:hover .play { transform: scale(1.1); }
+  .video-tile .body { padding: 14px 16px; }
+  .video-tile .body .t {
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 1.4;
+    margin: 0 0 4px;
+  }
+  .video-tile .body .d {
+    font-size: 12px;
+    color: var(--ink);
+    opacity: .65;
+    line-height: 1.5;
+  }
+
+  /* ---------- TOC ---------- */
+  .toc {
+    position: sticky;
+    top: 12px;
+    background: #FFFFFF;
+    border-radius: 18px;
+    padding: 16px 14px;
+    box-shadow: var(--shadow);
+  }
+  .toc h3 {
+    margin: 0 0 12px;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", cursive;
+    font-weight: 400;
+    font-size: 20px;
+    color: var(--ink);
+  }
+  .toc .toc-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px;
+    margin: 4px 0;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all .2s ease;
+    font-size: 14px;
+    color: var(--ink);
+    font-weight: bold;
+    border: 1.5px solid transparent;
+  }
+  .toc .toc-item:hover {
+    background: rgba(255, 240, 224, .7);
+    transform: translateX(2px);
+  }
+  .toc .toc-item.active {
+    background: linear-gradient(135deg, var(--orange), var(--pink));
+    color: #FFFFFF;
+    box-shadow: 0 6px 16px -6px rgba(224, 122, 46, .45);
+    transform: translateX(2px);
+  }
+
+  /* ---------- Video modal ---------- */
+  .video-modal {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, .55);
+    backdrop-filter: blur(6px);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 100;
+    padding: 24px;
+  }
+  .video-modal.open { display: flex; animation: fadeIn .3s ease; }
+  .video-modal .frame {
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 16px;
+    max-width: 820px;
+    width: 100%;
+    position: relative;
+  }
+  .video-modal .frame h4 { margin: 0 0 10px; font-size: 16px; }
+  .video-modal .frame .aspect {
+    aspect-ratio: 16 / 9;
+    background: #1B1B1A;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: #FFFFFF;
+    font-size: 14px;
+    overflow: hidden;
+  }
+  .video-modal .close {
+    position: absolute;
+    top: -10px; right: -10px;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    border: 0;
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
+  }
+
+  /* ---------- Footer ---------- */
+  .closing {
+    margin-top: 32px;
+    text-align: center;
+    background: linear-gradient(135deg, #FFE5D2 0%, #FFD0E2 50%, #D2E5FF 100%);
+    border-radius: 18px;
+    padding: 32px 20px;
+  }
+  .closing h3 {
+    margin: 0 0 8px;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", cursive;
+    font-size: 22px;
+    font-weight: 400;
+  }
+  .closing p { margin: 0; color: var(--ink); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="top-nav">
+  <a class="back-btn" href="../index.html">← 返回主页</a>
+</div>
+
+<header class="hero">
+  <img class="hero-img" src="../assets/images/title1.jpg" alt="健康小站封面" />
+  <div class="hero-overlay">
+    <h1>健康行为小知识</h1>
+  </div>
+</header>
+
+<div class="wave-divider">
+  <svg viewBox="0 0 1440 60" preserveAspectRatio="none">
+    <path d="M0,30 C240,60 480,0 720,30 C960,60 1200,0 1440,30 L1440,60 L0,60 Z" fill="#FDF8F5"/>
+  </svg>
+</div>
+
+<main class="stage">
+
+  <!-- TOC -->
+  <aside class="toc reveal" aria-label="目录">
+    <h3>目录</h3>
+    <div class="toc-item active" data-target="diet"><span>营养饮食</span></div>
+    <div class="toc-item" data-target="exercise"><span>积极运动</span></div>
+    <div class="toc-item" data-target="sleep"><span>良好睡眠</span></div>
+    <div class="toc-item" data-target="screen"><span>合理视屏</span></div>
+    <div class="toc-item" data-target="habits"><span>禁烟禁酒</span></div>
+    <div class="toc-item" data-target="mental"><span>心理健康</span></div>
+  </aside>
+
+  <!-- Module content rendered by JS -->
+  <section id="content"></section>
+</main>
+
+<div class="closing reveal">
+  <h3>健康不是一时兴起，而是日复一日的小选择</h3>
+  <p>看完任一板块，回到主页完成今日打卡 ✨</p>
+</div>
+
+<!-- Video modal -->
+<div class="video-modal" id="videoModal">
+  <div class="frame">
+    <button class="close" id="closeVideo">×</button>
+    <h4 id="videoTitle">视频</h4>
+    <div class="aspect" id="videoContent"></div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   健康行为小知识 · 数据驱动 + 后端追踪
+   ---------------------------------------------------------------------
+   数据来源:
+     1. window.CONTENT_DATA  ← 后端注入覆盖
+     2. 本地 DEFAULT_CONTENT ← fallback
+   所有 PDF/视频都带 data-pdf-id / data-video-id / data-module-id,
+   点击统一走 track() 上报。后端接入后替换 CONTENT_DATA 即可。
+   ===================================================================== */
+
+/* =====================================================================
+   DEFAULT_CONTENT — 本地静态数据，后端接入后由 window.CONTENT_DATA 覆盖
+   结构说明（供后端参考）：
+   {
+     <moduleId>: {
+       name: '模块名称',
+       intro: { title: '卷首语标题', paragraphs: ['段落1','段落2',...] },
+       pdfs:  [{ id, title, url }],   // url 由后端上传到 OSS 后填入
+       videos:[{ id, title, desc, url, poster }],
+     }
+   }
+   ===================================================================== */
+const DEFAULT_CONTENT = {
+  diet: {
+    name: '营养饮食',
+    intro: {
+      title: '营养饮食 · 吃对每一餐',
+      paragraphs: [
+        '饮食是健康的地基。青少年阶段（12–18 岁）正处于身体快速发育期，需要充足的<strong>蛋白质、钙、铁、锌</strong>，以及丰富的蔬菜水果提供维生素和膳食纤维。',
+        '建议每天：<br/>• 早餐必吃（占全天能量 25–30%）<br/>• 一日三餐定时定量，不漏餐<br/>• 每天 300–500g 蔬菜 + 200–350g 水果<br/>• 每天饮水 1200–1400ml，少喝含糖饮料',
+      ],
+    },
+    pdfs: [
+      { id: 'diet-pdf-1', title: '青少年膳食指南手册', url: '#' },
+      { id: 'diet-pdf-2', title: '三餐搭配实用图表',     url: '#' },
+      { id: 'diet-pdf-3', title: '零食挑选避坑指南',     url: '#' },
+    ],
+    videos: [
+      { id: 'diet-vid-1', title: '营养早餐怎么搭？',  desc: '3 分钟学会 5 种快手早餐',      url: '#', poster: '' },
+      { id: 'diet-vid-2', title: '读懂食品营养标签',  desc: '挑零食不再被花哨包装忽悠',    url: '#', poster: '' },
+      { id: 'diet-vid-3', title: '学生一周餐盘示范',  desc: '跟着营养师吃一周看看变化',    url: '#', poster: '' },
+    ],
+  },
+  exercise: {
+    name: '积极运动',
+    intro: {
+      title: '积极运动 · 每天动一动',
+      paragraphs: [
+        'WHO 建议青少年每天累计 <strong>60 分钟</strong>中等强度以上运动（如快走、骑车、跳绳），每周 3 次加强肌肉和骨骼的活动（俯卧撑、引体向上、跳绳等）。',
+        '运动不是惩罚式地"逼自己"，而是找到让自己舒服的节奏：可以是上下学走路、课间跳绳、周末打球、睡前拉伸。<strong>把运动拆成小块</strong>塞进一天，更容易坚持。',
+      ],
+    },
+    pdfs: [
+      { id: 'ex-pdf-1', title: '青少年运动指南',         url: '#' },
+      { id: 'ex-pdf-2', title: '课间 5 分钟拉伸图解',    url: '#' },
+      { id: 'ex-pdf-3', title: '一周运动打卡表',         url: '#' },
+    ],
+    videos: [
+      { id: 'ex-vid-1', title: '课间 5 分钟拉伸',   desc: '跟着做，眼睛脖子都舒服',     url: '#' },
+      { id: 'ex-vid-2', title: '居家燃脂训练',     desc: '不需要器械，每天 10 分钟',     url: '#' },
+      { id: 'ex-vid-3', title: '运动前后怎么吃',   desc: '吃对时间，比吃得多更重要',     url: '#' },
+    ],
+  },
+  sleep: {
+    name: '良好睡眠',
+    intro: {
+      title: '良好睡眠 · 睡好才有力气',
+      paragraphs: [
+        '青少年每天需要 <strong>8–10 小时</strong>睡眠。生长激素在深度睡眠时分泌最旺盛，长期睡不够会影响身高、记忆力和情绪。',
+        '改善睡眠的小动作：<br/>• 固定时间上床、起床（哪怕周末）<br/>• 睡前 1 小时放下手机<br/>• 房间保持凉爽、安静、黑暗<br/>• 下午 3 点后不再喝咖啡、浓茶',
+      ],
+    },
+    pdfs: [
+      { id: 'sleep-pdf-1', title: '青少年睡眠白皮书',   url: '#' },
+      { id: 'sleep-pdf-2', title: '睡前放松训练手册',   url: '#' },
+      { id: 'sleep-pdf-3', title: '一周睡眠记录表',     url: '#' },
+    ],
+    videos: [
+      { id: 'sleep-vid-1', title: '10 分钟睡前放松',  desc: '呼吸 + 渐进式肌肉放松',       url: '#' },
+      { id: 'sleep-vid-2', title: '戒掉睡前手机',    desc: '替代清单 + 21 天挑战',         url: '#' },
+      { id: 'sleep-vid-3', title: '认识生物钟',      desc: '什么是昼夜节律？',             url: '#' },
+    ],
+  },
+  screen: {
+    name: '合理视屏',
+    intro: {
+      title: '合理视屏 · 屏幕之外有天地',
+      paragraphs: [
+        '青少年每天面对屏幕的时间越来越长——手机、平板、电脑、电视。<strong>过度使用屏幕</strong>不仅影响视力，还会压缩运动、睡眠和面对面社交的时间。',
+        '合理视屏的建议：<br/>• 非学习用途屏幕时间每天不超过 2 小时<br/>• 每 20 分钟看屏幕，向 6 米外看 20 秒<br/>• 睡前一小时放下所有电子设备<br/>• 把手机"请"出卧室，用闹钟代替手机闹铃',
+      ],
+    },
+    pdfs: [
+      { id: 'scr-pdf-1', title: '青少年视屏管理手册',     url: '#' },
+      { id: 'scr-pdf-2', title: '护眼小贴士与眼保健操',   url: '#' },
+      { id: 'scr-pdf-3', title: '替代屏幕的 20 种活动',   url: '#' },
+    ],
+    videos: [
+      { id: 'scr-vid-1', title: '屏幕时间怎么降下来？', desc: '学会和手机「和平分手」',    url: '#' },
+      { id: 'scr-vid-2', title: '护眼小运动',           desc: '每天 5 分钟让眼睛放松',      url: '#' },
+      { id: 'scr-vid-3', title: '放下手机能做什么？',   desc: '20 个不插电的有趣活动',      url: '#' },
+    ],
+  },
+  habits: {
+    name: '禁烟禁酒',
+    intro: {
+      title: '禁烟禁酒 · 学会说"不"',
+      paragraphs: [
+        '青少年的大脑仍在发育，<strong>尼古丁和酒精对发育中的大脑伤害更大</strong>，更容易成瘾，也更影响记忆力和情绪控制。',
+        '面对同伴递烟劝酒时，记住三个"不"：<br/>• <strong>直接拒绝</strong>：不需要理由，简单说"我不抽烟/酒"<br/>• <strong>找借口离开</strong>："我妈等我回家，我先走了"<br/>• <strong>找同盟</strong>：和真正不抽烟不喝酒的朋友一起玩',
+      ],
+    },
+    pdfs: [
+      { id: 'hab-pdf-1', title: '青少年吸烟危害图鉴',       url: '#' },
+      { id: 'hab-pdf-2', title: '酒精对青少年大脑的影响',   url: '#' },
+      { id: 'hab-pdf-3', title: '拒绝烟酒的 10 种说法',     url: '#' },
+    ],
+    videos: [
+      { id: 'hab-vid-1', title: '烟酒对身体的真实伤害', desc: '5 个被忽视的细节',           url: '#' },
+      { id: 'hab-vid-2', title: '拒烟情景剧',           desc: '三句话让你轻松脱身',         url: '#' },
+      { id: 'hab-vid-3', title: '电子烟也是烟',         desc: '关于电子烟的真相',           url: '#' },
+    ],
+  },
+  mental: {
+    name: '心理健康',
+    intro: {
+      title: '心理健康 · 心情也是健康',
+      paragraphs: [
+        '心理健康和身体健康一样重要。青少年常见的情绪困扰有：考试焦虑、人际关系紧张、自我认同迷茫、对未来的不确定感等。',
+        '守护心理健康的几个方法：<br/>• <strong>规律作息</strong>：睡眠充足是情绪稳定的基础<br/>• <strong>倾诉</strong>：和信任的朋友、家长、老师聊聊<br/>• <strong>运动 + 兴趣</strong>：释放压力的健康出口<br/>• <strong>必要时求助专业</strong>：心理老师、心理医生不是"奇怪的人"，是来帮你的',
+      ],
+    },
+    pdfs: [
+      { id: 'men-pdf-1', title: '青少年心理健康手册',   url: '#' },
+      { id: 'men-pdf-2', title: '情绪急救工具卡',       url: '#' },
+      { id: 'men-pdf-3', title: '校园求助资源地图',     url: '#' },
+    ],
+    videos: [
+      { id: 'men-vid-1', title: '如何应对考试焦虑',   desc: '5 个呼吸小练习',              url: '#' },
+      { id: 'men-vid-2', title: '和情绪做朋友',       desc: '不压抑、不被情绪带着走',      url: '#' },
+      { id: 'men-vid-3', title: '寻找你的支持网络',   desc: '家人 / 朋友 / 老师 / 专业人士', url: '#' },
+    ],
+  },
+};
+
+/* 后端注入覆盖: window.CONTENT_DATA = { diet: { pdfs: [...], videos: [...] }, ... } */
+const CONTENT = (window.CONTENT_DATA && typeof window.CONTENT_DATA === 'object')
+  ? Object.assign({}, DEFAULT_CONTENT, window.CONTENT_DATA)
+  : DEFAULT_CONTENT;
+
+/* =====================================================================
+   Current user (from localStorage, set by main page nickname modal)
+   ===================================================================== */
+const CURRENT_USER = (function () {
+  try {
+    const raw = localStorage.getItem('healthUser');
+    if (!raw) return { name: '匿名同学', id: 'anon' };
+    const u = JSON.parse(raw);
+    return { name: u.name || '匿名同学', id: u.id || 'anon' };
+  } catch (e) {
+    return { name: '匿名同学', id: 'anon' };
+  }
+})();
+
+/* =====================================================================
+   Track / backend contract
+   ===================================================================== */
+const TRACK_ENDPOINT = (window.TRACK_ENDPOINT || '/api/track/event');
+const VIDEO_WATCH_ENDPOINT = (window.VIDEO_WATCH_ENDPOINT || '/api/track/video-watch');
+
+function track(payload) {
+  const body = Object.assign({
+    user_id: CURRENT_USER.id,
+    user_name: CURRENT_USER.name,
+    ts: Date.now(),
+  }, payload);
+  if (window.__HEALTH_DEBUG__) console.log('[track]', body);
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(TRACK_ENDPOINT, JSON.stringify(body));
+      return;
+    }
+    fetch(TRACK_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      keepalive: true,
+    }).catch(() => {});
+  } catch (e) {}
+}
+
+/* =====================================================================
+   Render modules from CONTENT
+   ===================================================================== */
+const contentEl = document.getElementById('content');
+const tocItems = document.querySelectorAll('.toc-item');
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+function renderModule(key) {
+  const mod = CONTENT[key];
+  if (!mod) return '';
+  const introParas = mod.intro.paragraphs.map(p => `<p class="lead">${p}</p>`).join('');
+  const pdfTiles = (mod.pdfs || []).map(p => `
+    <a class="pdf-tile"
+       href="${escapeHtml(p.url)}"
+       target="_blank"
+       rel="noopener"
+       data-pdf-id="${escapeHtml(p.id)}"
+       data-module-id="${escapeHtml(key)}"
+       data-track-action="open_pdf">
+      <div class="ico">📄</div>
+      <div class="body">
+        <div class="t2">${escapeHtml(p.title)}</div>
+      </div>
+    </a>
+  `).join('');
+  const videoTiles = (mod.videos || []).map(v => `
+    <div class="video-tile"
+         data-video-id="${escapeHtml(v.id)}"
+         data-module-id="${escapeHtml(key)}"
+         data-video-url="${escapeHtml(v.url)}"
+         data-title="${escapeHtml(v.title)}"
+         data-poster="${escapeHtml(v.poster || '')}"
+         data-duration="${v.durationSec || 0}"
+         data-track-action="open_video">
+      <div class="cover"><div class="play">▶</div></div>
+      <div class="body">
+        <div class="t">${escapeHtml(v.title)}</div>
+        <div class="d">${escapeHtml(v.desc)}</div>
+      </div>
+    </div>
+  `).join('');
+
+  return `
+    <article class="module" id="mod-${key}" data-key="${key}">
+      <div class="card reveal" id="${key}-intro">
+        <h2>${escapeHtml(mod.intro.title)}</h2>
+        ${introParas}
+      </div>
+
+      <div class="card reveal" id="${key}-pdf">
+        <div class="sec-block">
+          <div class="sec-label"><span class="dot"></span>PDF 学习手册</div>
+          <div class="pdf-row">${pdfTiles || '<div class="empty">本模块暂无 PDF</div>'}</div>
+        </div>
+      </div>
+
+      <div class="card reveal" id="${key}-video">
+        <div class="sec-block">
+          <div class="sec-label"><span class="dot"></span>趣味视频</div>
+          <div class="video-row">${videoTiles || '<div class="empty">本模块暂无视频</div>'}</div>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function renderAll() {
+  const keys = ['diet','exercise','sleep','screen','habits','mental'];
+  contentEl.innerHTML = keys.map(renderModule).join('');
+  showModule(keys[0]);
+  bindEvents();
+  observeReveals();
+}
+
+function showModule(key) {
+  const modules = document.querySelectorAll('.module');
+  modules.forEach(m => m.classList.toggle('active', m.dataset.key === key));
+  tocItems.forEach(t => t.classList.toggle('active', t.dataset.target === key));
+  track({ type: 'view_module', module_id: key });
+  window.scrollTo({
+    top: document.querySelector('.stage').offsetTop - 80,
+    behavior: 'smooth'
+  });
+}
+
+/* =====================================================================
+   Event bindings
+   ===================================================================== */
+function bindEvents() {
+  tocItems.forEach(item => {
+    item.addEventListener('click', () => showModule(item.dataset.target));
+  });
+
+  document.querySelectorAll('a.pdf-tile[data-track-action="open_pdf"]').forEach(a => {
+    a.addEventListener('click', () => {
+      track({
+        type: 'open_pdf',
+        module_id: a.dataset.moduleId,
+        target_id: a.dataset.pdfId,
+        href: a.href,
+      });
+    });
+  });
+
+  document.querySelectorAll('.video-tile[data-track-action="open_video"]').forEach(t => {
+    t.addEventListener('click', () => openVideo(t));
+  });
+}
+
+/* =====================================================================
+   Video modal + watch-duration tracking
+   ===================================================================== */
+const videoModal = document.getElementById('videoModal');
+const videoTitle = document.getElementById('videoTitle');
+const videoContent = document.getElementById('videoContent');
+const closeVideo = document.getElementById('closeVideo');
+
+let currentVideoEl = null;
+let currentVideoMeta = null;
+let watchSessionId = null;
+let lastReportTs = 0;
+
+function openVideo(tile) {
+  const meta = {
+    video_id: tile.dataset.videoId,
+    module_id: tile.dataset.moduleId,
+    title:    tile.dataset.title,
+    url:      tile.dataset.videoUrl,
+    poster:   tile.dataset.poster || '',
+    duration: parseInt(tile.dataset.duration || '0', 10),
+  };
+  currentVideoMeta = meta;
+  watchSessionId = 'sess-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now();
+
+  videoTitle.textContent = meta.title;
+
+  if (!meta.url || meta.url === '#') {
+    videoContent.innerHTML = `
+      <div style="text-align:center;">
+        <div style="font-size:42px; margin-bottom:10px;">🎬</div>
+        <div style="opacity:.75;">视频尚未上传</div>
+        <div style="margin-top:8px; font-size:12px; opacity:.55;">${escapeHtml(meta.title)}</div>
+      </div>`;
+  } else {
+    videoContent.innerHTML = `
+      <video id="vidEl" controls preload="metadata" poster="${escapeHtml(meta.poster || '')}"
+             style="width:100%; height:100%; background:#000;"
+             data-video-id="${escapeHtml(meta.video_id)}">
+        <source src="${escapeHtml(meta.url)}" />
+        您的浏览器不支持 video 标签。
+      </video>
+    `;
+    currentVideoEl = document.getElementById('vidEl');
+    bindVideoTracking(currentVideoEl, meta);
+  }
+
+  track({
+    type: 'open_video',
+    module_id: meta.module_id,
+    target_id: meta.video_id,
+    session_id: watchSessionId,
+  });
+
+  videoModal.classList.add('open');
+}
+
+function bindVideoTracking(vid, meta) {
+  vid.addEventListener('play',  () => reportWatch('play'));
+  vid.addEventListener('pause', () => reportWatch('pause'));
+  vid.addEventListener('seeked',() => reportWatch('seek'));
+  vid.addEventListener('ended', () => reportWatch('end'));
+  vid.addEventListener('timeupdate', () => {
+    const now = Date.now();
+    if (now - lastReportTs >= 10000) reportWatch('tick');
+  });
+}
+
+function reportWatch(eventType) {
+  if (!currentVideoEl || !currentVideoMeta) return;
+  lastReportTs = Date.now();
+  const v = currentVideoEl;
+  const dur = v.duration || currentVideoMeta.duration || 0;
+  const pos = v.currentTime || 0;
+  const payload = {
+    type: 'video_watch',
+    session_id: watchSessionId,
+    module_id: currentVideoMeta.module_id,
+    target_id: currentVideoMeta.video_id,
+    video_id: currentVideoMeta.video_id,
+    event: eventType,
+    positionSec: Math.round(pos * 10) / 10,
+    durationSec: Math.round(dur * 10) / 10,
+    percent: dur ? Math.min(100, Math.round((pos / dur) * 1000) / 10) : 0,
+  };
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(VIDEO_WATCH_ENDPOINT, JSON.stringify(Object.assign({
+        user_id: CURRENT_USER.id, user_name: CURRENT_USER.name, ts: Date.now()
+      }, payload)));
+      return;
+    }
+    fetch(VIDEO_WATCH_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({ user_id: CURRENT_USER.id, ts: Date.now() }, payload)),
+      keepalive: true,
+    }).catch(() => {});
+  } catch (e) {}
+  if (window.__HEALTH_DEBUG__) console.log('[video_watch]', payload);
+}
+
+function closeVM() {
+  if (currentVideoEl && !currentVideoEl.paused) {
+    reportWatch('close');
+    currentVideoEl.pause();
+  }
+  videoContent.innerHTML = '';
+  currentVideoEl = null;
+  currentVideoMeta = null;
+  videoModal.classList.remove('open');
+}
+closeVideo.addEventListener('click', closeVM);
+videoModal.addEventListener('click', (e) => { if (e.target === videoModal) closeVM(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeVM(); });
+
+/* =====================================================================
+   Hash-based deep linking
+   ===================================================================== */
+function showModuleFromHash() {
+  const hash = window.location.hash.replace('#', '');
+  if (!hash) return false;
+  const modKey = hash.split('-')[0];
+  const valid = ['diet','exercise','sleep','screen','habits','mental'];
+  if (!valid.includes(modKey)) return false;
+  showModule(modKey);
+  if (hash.includes('-')) {
+    setTimeout(() => {
+      const el = document.getElementById(hash);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }
+  return true;
+}
+window.addEventListener('hashchange', showModuleFromHash);
+
+/* =====================================================================
+   Scroll reveal
+   ===================================================================== */
+let io;
+function observeReveals() {
+  if (!io) {
+    io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.08 });
+  }
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+}
+
+/* =====================================================================
+   Boot
+   ===================================================================== */
+renderAll();
+if (window.location.hash) showModuleFromHash();
+</script>
+</body>
+</html>

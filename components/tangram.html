@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>七巧板 · 拼图</title>
+<style>
+  :root { --ink: #2B2A28; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: transparent;
+    color: var(--ink);
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", "PingFang SC", cursive, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .header {
+    text-align: center;
+    padding: 32px 24px 8px;
+  }
+  .header .eyebrow {
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", cursive;
+    font-size: 11px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: #8A8580;
+    margin-bottom: 8px;
+  }
+  .header h1 {
+    margin: 0;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", cursive;
+    font-weight: 500;
+    
+    font-size: clamp(28px, 3.4vw, 44px);
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .header h1 .cn { font-style: normal; }
+
+  .stage {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 48px;
+    padding: 24px 32px;
+    align-items: start;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+  @media (max-width: 900px) {
+    .stage { grid-template-columns: 1fr; padding: 32px 24px; }
+  }
+
+  /* LEFT — labelled list of pieces, two columns.
+     Each piece sits in a square slot; SVG viewBox tracks the polygon's bounding
+     box so every piece renders at the same visual size regardless of shape. */
+  .pieces {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: 36px;
+    row-gap: 14px;
+  }
+  .piece-row {
+    display: grid;
+    grid-template-columns: 160px 32px 1fr;
+    align-items: center;
+    column-gap: 12px;
+  }
+  .piece {
+    width: 160px;
+    height: 160px;
+    cursor: pointer;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    transition: transform .25s ease, opacity .35s ease;
+    outline: none;
+    position: relative;
+  }
+  .piece svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .piece:hover:not(.is-placed) { transform: rotate(-4deg) scale(1.06); }
+  /* Piece keeps its full color after placement — it only animates back to
+     the board; the left-side icon stays as a labelled entry point. */
+  .piece.is-placed { opacity: 1; }
+
+  .dash {
+    height: 2px;
+    background: var(--ink);
+    border-radius: 2px;
+    margin-top: 4px;
+    transform: rotate(-1deg);
+    opacity: .85;
+  }
+  .label {
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", "PingFang SC", cursive, sans-serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: .02em;
+    transform: rotate(-1.5deg);
+    transform-origin: left center;
+    user-select: none;
+    white-space: nowrap;
+  }
+
+  /* RIGHT — board */
+  .board-wrap {
+    width: 100%;
+    max-width: 460px;
+    margin: 24px auto 0;
+    aspect-ratio: 1 / 1;
+    position: relative;
+  }
+  .board { width: 100%; height: 100%; position: relative; }
+  .board svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .board .p { opacity: 0; transition: opacity .35s ease; }
+  .board .p.placed { opacity: 1; }
+
+  .board-hint {
+    grid-column: 1 / -1;
+    text-align: right;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", "PingFang SC", cursive, sans-serif;
+    font-size: 13px;
+    color: var(--ink);
+    opacity: .7;
+    line-height: 1.6;
+    margin-top: 8px;
+    padding-right: 8px;
+  }
+  @media (max-width: 900px) {
+    .board-hint { text-align: center; padding-right: 0; }
+  }
+
+  .fly {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    transform: translate(0, 0);
+    transition: transform .75s cubic-bezier(.65,.05,.2,1);
+    will-change: transform;
+  }
+  .fly svg { width: 100%; height: 100%; display: block; overflow: visible; }
+</style>
+</head>
+<body>
+  <main class="stage">
+    <section class="pieces" id="pieces" aria-label="七巧板片"></section>
+    <section class="board-wrap" aria-label="七巧板">
+      <div class="board" id="board"></div>
+    </section>
+    <p class="board-hint" id="tangramHint"></p>
+  </main>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <filter id="crayon" x="-5%" y="-5%" width="110%" height="110%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" result="grain"/>
+        <feColorMatrix in="grain" type="matrix"
+          values="0 0 0 0 0
+                  0 0 0 0 0
+                  0 0 0 0 0
+                  0 0 0 0.35 0" result="grainAlpha"/>
+        <feComposite in="grainAlpha" in2="SourceGraphic" operator="in" result="grainInside"/>
+        <feMerge>
+          <feMergeNode in="SourceGraphic"/>
+          <feMergeNode in="grainInside"/>
+        </feMerge>
+      </filter>
+      <filter id="rough" x="-10%" y="-10%" width="120%" height="120%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="5" result="t"/>
+        <feDisplacementMap in="SourceGraphic" in2="t" scale="3.5" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+      <filter id="rough2" x="-10%" y="-10%" width="120%" height="120%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="11" result="t"/>
+        <feDisplacementMap in="SourceGraphic" in2="t" scale="2.2" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+      <filter id="rough3" x="-10%" y="-10%" width="120%" height="120%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="17" result="t"/>
+        <feDisplacementMap in="SourceGraphic" in2="t" scale="3.0" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+  </svg>
+
+<script>
+/* =====================================================================
+   TANGRAM_DATA — editable text, backend-injectable via window.TANGRAM_DATA
+   ===================================================================== */
+const TANGRAM_DATA = Object.assign({
+  hintText: '请点击左侧的图形板块来完成拼图吧～<br/>完成后再次点击相应的板块继续学习小知识',
+}, window.TANGRAM_DATA || {});
+
+(function renderTangramText() {
+  const el = document.getElementById('tangramHint');
+  if (el && TANGRAM_DATA.hintText) el.innerHTML = TANGRAM_DATA.hintText;
+})();
+
+const SIZE = 100;
+function tri(p1, p2, p3) { return `${p1[0]},${p1[1]} ${p2[0]},${p2[1]} ${p3[0]},${p3[1]}`; }
+function quad(p1, p2, p3, p4) { return `${p1[0]},${p1[1]} ${p2[0]},${p2[1]} ${p3[0]},${p3[1]} ${p4[0]},${p4[1]}`; }
+
+/* Order is set so the 2-column grid reads top-to-bottom, left-to-right.
+     Each piece is paired with one health-behavior topic. */
+const PIECES = [
+  { id: 'L1', label: '营养饮食', color: '#7BB6E8', points: tri([0,0],   [0,100],  [50,50]),  url: '../pages/health-detail.html#diet-intro' },
+  { id: 'M',  label: '积极运动', color: '#F4B860', points: tri([50,0], [100,0], [100,50]), url: '../pages/health-detail.html#exercise-intro' },
+  { id: 'S2', label: '良好睡眠', color: '#B57BD9', points: tri([75,75],[100,100],[100,50]),url: '../pages/health-detail.html#sleep-intro' },
+  { id: 'SQ', label: '合理视屏', color: '#F8DC6A', points: quad([50,50],[75,25],[100,50],[75,75]), url: '../pages/health-detail.html#sleep-pdf' },
+  { id: 'S1', label: '不吸烟',   color: '#9DD46F', points: tri([25,25],[75,25], [50,50]),  url: '../pages/health-detail.html#habits-video' },
+  { id: 'L2', label: '不饮酒',   color: '#E5566B', points: tri([0,100],[100,100],[50,50]),  url: '../pages/health-detail.html#habits-intro' },
+  { id: 'PA', label: '心理健康', color: '#7DD3C0', points: quad([0,0], [50,0], [75,25],[25,25]), url: '../pages/health-detail.html#mental-intro' },
+];
+
+/* Compute a tight bounding box for each polygon and add a uniform padding so
+   the piece's SVG viewBox is sized to the piece itself. This way every piece
+   draws at the same visual scale inside its slot, regardless of the polygon's
+   actual size within the 100×100 board. */
+const PAD = 4;
+PIECES.forEach(p => {
+  const pts = p.points.split(/\s+/).map(s => s.split(',').map(Number));
+  const xs = pts.map(q => q[0]);
+  const ys = pts.map(q => q[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  const y0 = Math.min(...ys), y1 = Math.max(...ys);
+  p.bbox  = { x: x0 - PAD, y: y0 - PAD, w: (x1 - x0) + PAD * 2, h: (y1 - y0) + PAD * 2 };
+});
+
+const ROUGH_FILTERS = ['url(#rough)','url(#rough2)','url(#rough3)'];
+const pieceFilter = p => ROUGH_FILTERS[(p.id.charCodeAt(1) + p.label.length) % ROUGH_FILTERS.length];
+
+const piecesEl = document.getElementById('pieces');
+const boardEl  = document.getElementById('board');
+
+function pieceSvg(p) {
+  const f = pieceFilter(p);
+  const { x, y, w, h } = p.bbox;
+  return `<svg viewBox="${x} ${y} ${w} ${h}" preserveAspectRatio="xMidYMid meet" filter="${f}">
+    <polygon points="${p.points}" fill="${p.color}" stroke="none" filter="url(#crayon)"/>
+    <polygon points="${p.points}" fill="none" stroke="#2B2A28" stroke-width="${Math.max(1, w * 0.025)}" stroke-linejoin="round" stroke-linecap="round" opacity=".95"/>
+  </svg>`;
+}
+
+function buildTray() {
+  piecesEl.innerHTML = '';
+  PIECES.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'piece-row';
+    row.innerHTML = `
+      <button class="piece" data-id="${p.id}" data-url="${p.url}" aria-label="${p.label}">${pieceSvg(p)}</button>
+      <div class="dash"></div>
+      <div class="label">${p.label}</div>
+    `;
+    row.querySelector('.piece').addEventListener('click', onPick);
+    piecesEl.appendChild(row);
+  });
+}
+
+function buildBoard() {
+  const piecePolys = PIECES.map(p => {
+    const f = pieceFilter(p);
+    return `<polygon class="p" data-id="${p.id}" points="${p.points}" filter="${f}"
+      fill="${p.color}" stroke="none"/>`;
+  }).join('');
+  const pieceStrokes = PIECES.map(p => {
+    const f = pieceFilter(p);
+    return `<polygon points="${p.points}" filter="${f}"
+      fill="none" stroke="#2B2A28" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"
+      opacity="0" class="p-stroke" data-id="${p.id}"/>`;
+  }).join('');
+  boardEl.innerHTML = `
+    <svg viewBox="0 0 ${SIZE} ${SIZE}" preserveAspectRatio="xMidYMid meet">
+      <g>${piecePolys}</g>
+      <g>${pieceStrokes}</g>
+    </svg>
+  `;
+}
+
+function avgPoints(pointsStr) {
+  const pts = pointsStr.trim().split(/\s+/).map(s => s.split(',').map(Number));
+  const x = pts.reduce((a, q) => a + q[0], 0) / pts.length;
+  const y = pts.reduce((a, q) => a + q[1], 0) / pts.length;
+  return [x, y];
+}
+
+const placedSet = new Set();
+
+function onPick(e) {
+  const btn = e.currentTarget;
+  const id = btn.dataset.id;
+  const url = btn.dataset.url;
+  const p = PIECES.find(x => x.id === id);
+  if (!p) return;
+
+  if (placedSet.has(id)) {
+    if (url) window.open(url, '_blank', 'noopener');
+    return;
+  }
+
+  const fromRect = btn.getBoundingClientRect();
+  const [cx, cy] = avgPoints(p.points);
+  const boardRect = boardEl.getBoundingClientRect();
+  const targetLeft = boardRect.left + (cx / SIZE) * boardRect.width  - fromRect.width  / 2;
+  const targetTop  = boardRect.top  + (cy / SIZE) * boardRect.height - fromRect.height / 2;
+  const dx = targetLeft - fromRect.left;
+  const dy = targetTop  - fromRect.top;
+
+  const flyer = document.createElement('div');
+  flyer.className = 'fly';
+  flyer.style.left = fromRect.left + 'px';
+  flyer.style.top  = fromRect.top  + 'px';
+  flyer.style.width  = fromRect.width  + 'px';
+  flyer.style.height = fromRect.height + 'px';
+  flyer.innerHTML = pieceSvg(p);
+  document.body.appendChild(flyer);
+
+  btn.classList.add('is-placed');
+
+  flyer.getBoundingClientRect();
+  requestAnimationFrame(() => {
+    flyer.style.transform = `translate(${dx}px, ${dy}px)`;
+  });
+
+  setTimeout(() => {
+    const fill = boardEl.querySelector(`polygon.p[data-id="${id}"]`);
+    const stroke = boardEl.querySelector(`polygon.p-stroke[data-id="${id}"]`);
+    if (fill) fill.style.opacity = '1';
+    if (stroke) stroke.style.opacity = '.95';
+    flyer.remove();
+  }, 760);
+
+  placedSet.add(id);
+}
+
+buildTray();
+buildBoard();
+</script>
+</body>
+</html>

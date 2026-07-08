@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>健康行为大循环</title>
+<style>
+  :root {
+    --ink: #2B2A28;
+    --grey: #8A8580;
+    --lamp-on: #FFB347;
+    --lamp-glow: rgba(255, 179, 71, .55);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: transparent;
+    color: var(--ink);
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", "PingFang SC", cursive, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .header {
+    text-align: center;
+    padding: 32px 24px 8px;
+  }
+  .header .eyebrow {
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", cursive;
+    font-size: 11px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--grey);
+    margin-bottom: 8px;
+  }
+  .header h1 {
+    margin: 0;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", cursive;
+    font-weight: 500;
+    
+    font-size: clamp(28px, 3.4vw, 44px);
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .header h1 .cn { font-style: normal; }
+
+  .stage {
+    padding: 16px 32px 16px 32px;
+    max-width: 100%;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* Right-bottom corner: single link with arrow.
+     Pushed well below the dominoes so it never overlaps the falling tiles. */
+  .corner-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    text-decoration: none;
+    color: var(--ink);
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", "PingFang SC", cursive, sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    max-width: 100%;
+    text-align: right;
+    padding: 12px 56px 8px;
+    z-index: 5;
+  }
+  .corner-link .text { flex: 0 1 auto; }
+  .corner-link .arrow {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 auto;
+    transition: transform .25s ease;
+  }
+  .corner-link:hover .arrow { transform: translate(4px, -2px) rotate(-6deg); }
+
+  .board {
+    position: relative;
+    padding: 40px 24px 60px;
+  }
+
+  /* Layout: domino row on the left, lamp on the right with explicit gap. */
+  .scene {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 120px;   /* breathing room between last domino and lamp */
+    align-items: end;
+  }
+
+  .dominoes {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    column-gap: 18px;
+    align-items: end;
+    padding: 0 8px;
+  }
+  @media (max-width: 900px) {
+    .scene { grid-template-columns: 1fr; row-gap: 40px; }
+    .dominoes { grid-template-columns: repeat(3, 1fr); row-gap: 28px; }
+  }
+
+  /* Lamp lives in its own column, far to the right of the last domino. */
+  .lamp-wrap {
+    width: 110px;
+    justify-self: center;
+    position: relative;
+  }
+
+  .domino {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 9 / 16;
+    cursor: pointer;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    outline: none;
+    transform-origin: 50% 100%;
+    transition: transform .55s cubic-bezier(.55,.05,.25,1);
+    will-change: transform;
+  }
+  .domino svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+  /* Stagger the topple so the chain reads as a real cascade.
+     Each tile has its own delay written inline below. */
+  .domino.fallen { transform: rotate(82deg); }
+  .domino:not(.fallen) { transform: rotate(0deg); }
+
+  .domino:hover:not(.fallen) { transform: rotate(-6deg); }
+  .domino.fallen:hover { transform: rotate(82deg) translateY(-3px); }
+
+  /* Lamp column — bottom-aligned so the lamp base sits on the same baseline
+     as the dominoes. */
+  .lamp {
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    position: relative;
+  }
+  .lamp svg {
+    width: 90px;
+    height: auto;
+    overflow: visible;
+    display: block;
+  }
+  /* The flame and glow are hidden until the chain is fully fallen. */
+  .lamp .flame, .lamp .glow { opacity: 0; transition: opacity .5s ease; }
+  .lamp.lit .flame { opacity: 1; }
+  .lamp.lit .glow { opacity: 1; }
+  .lamp.lit .flame { animation: flicker 1.6s ease-in-out infinite; transform-origin: 50% 90%; }
+  @keyframes flicker {
+    0%, 100% { transform: scale(1) translateY(0); }
+    50%      { transform: scale(1.06) translateY(-1px); }
+  }
+</style>
+</head>
+<body>
+  <main class="stage">
+    <div class="board">
+      <div class="scene">
+        <section class="dominoes" id="dominoes"></section>
+        <div class="lamp-wrap">
+          <div class="lamp" id="lamp"></div>
+        </div>
+      </div>
+    </div>
+
+    <a class="corner-link" href="../pages/health-loop.html" target="_blank" rel="noopener">
+      <span class="text" id="dominoLinkText"></span>
+      <svg class="arrow" viewBox="0 0 64 64" aria-hidden="true">
+        <defs>
+          <filter id="arrRough" x="-10%" y="-10%" width="120%" height="120%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="4" result="t"/>
+            <feDisplacementMap in="SourceGraphic" in2="t" scale="2.4" xChannelSelector="R" yChannelSelector="G"/>
+          </filter>
+        </defs>
+        <g filter="url(#arrRough)">
+          <path d="M10 32 Q 28 22, 46 32" fill="none" stroke="#2B2A28" stroke-width="3" stroke-linecap="round"/>
+          <path d="M40 24 L 48 32 L 40 40" fill="none" stroke="#2B2A28" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+      </svg>
+    </a>
+  </main>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <filter id="crayon" x="-5%" y="-5%" width="110%" height="110%">
+        <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="9" result="grain"/>
+        <feColorMatrix in="grain" type="matrix"
+          values="0 0 0 0 0
+                  0 0 0 0 0
+                  0 0 0 0 0
+                  0 0 0 0.30 0" result="grainAlpha"/>
+        <feComposite in="grainAlpha" in2="SourceGraphic" operator="in" result="grainInside"/>
+        <feMerge>
+          <feMergeNode in="SourceGraphic"/>
+          <feMergeNode in="grainInside"/>
+        </feMerge>
+      </filter>
+      <filter id="rough" x="-10%" y="-10%" width="120%" height="120%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="6" result="t"/>
+        <feDisplacementMap in="SourceGraphic" in2="t" scale="2.6" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+      <filter id="rough2" x="-10%" y="-10%" width="120%" height="120%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.07" numOctaves="2" seed="13" result="t"/>
+        <feDisplacementMap in="SourceGraphic" in2="t" scale="2.0" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+      <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="6" />
+      </filter>
+      <radialGradient id="flameGrad" cx="50%" cy="60%" r="55%">
+        <stop offset="0%"  stop-color="#FFE9A8"/>
+        <stop offset="55%" stop-color="#FFB347"/>
+        <stop offset="100%" stop-color="#E07A2E" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="glowGrad" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"  stop-color="rgba(255,179,71,.7)"/>
+        <stop offset="60%" stop-color="rgba(255,179,71,.15)"/>
+        <stop offset="100%" stop-color="rgba(255,179,71,0)"/>
+      </radialGradient>
+    </defs>
+  </svg>
+
+<script>
+/* =====================================================================
+   DOMINO_DATA — editable text, backend-injectable via window.DOMINO_DATA
+   ===================================================================== */
+const DOMINO_DATA = Object.assign({
+  linkText: '点一下 <em>第一块</em>，看它们如何点亮小灯。<br/>请继续了解健康行为之间是如何环环紧密关联的～',
+}, window.DOMINO_DATA || {});
+
+(function renderDominoText() {
+  const el = document.getElementById('dominoLinkText');
+  if (el && DOMINO_DATA.linkText) el.innerHTML = DOMINO_DATA.linkText;
+})();
+
+const TILES = [
+  { id: 'd1', pip: 1, color: '#F4B860' },
+  { id: 'd2', pip: 2, color: '#7BB6E8' },
+  { id: 'd3', pip: 3, color: '#9DD46F' },
+  { id: 'd4', pip: 4, color: '#E5566B' },
+  { id: 'd5', pip: 5, color: '#B57BD9' },
+  { id: 'd6', pip: 6, color: '#7DD3C0' },
+];
+
+const TW = 60, TH = 100;
+
+function pipPositions(n) {
+  const padX = 14, padY = 14;
+  const left = padX, mid = TW / 2, right = TW - padX;
+  const top = padY, ctr = TH / 4, btm = TH / 2 - padY;
+  const map = {
+    1: [[mid, ctr]],
+    2: [[left, top], [right, btm]],
+    3: [[left, top], [mid, ctr], [right, btm]],
+    4: [[left, top], [right, top], [left, btm], [right, btm]],
+    5: [[left, top], [right, top], [mid, ctr], [left, btm], [right, btm]],
+    6: [[left, top], [right, top], [left, ctr], [right, ctr], [left, btm], [right, btm]],
+  };
+  return map[n];
+}
+
+function dominoSvg(t, i) {
+  const roughId = i % 2 === 0 ? 'url(#rough)' : 'url(#rough2)';
+  const pipR = 4.2;
+  const pips = pipPositions(t.pip).map(([cx, cy]) =>
+    `<circle cx="${cx}" cy="${cy}" r="${pipR}" fill="${t.color}" stroke="#2B2A28" stroke-width="1.2" filter="${roughId}"/>`
+  ).join('');
+  return `
+    <svg viewBox="0 0 ${TW} ${TH}" preserveAspectRatio="xMidYMid meet">
+      <ellipse cx="${TW/2}" cy="${TH + 4}" rx="${TW * 0.45}" ry="3.2" fill="#2B2A28" opacity=".18" filter="url(#shadow)"/>
+      <g filter="${roughId}">
+        <rect x="3" y="3" width="${TW - 6}" height="${TH - 6}" rx="6" ry="6"
+              fill="#FBF7EC" stroke="#2B2A28" stroke-width="2.2" stroke-linejoin="round" filter="url(#crayon)"/>
+        <rect x="5" y="5" width="${TW - 10}" height="${TH - 10}" rx="5" ry="5"
+              fill="none" stroke="#FFFFFF" stroke-width="0.6" opacity=".45"/>
+        <line x1="9" y1="${TH / 2}" x2="${TW - 9}" y2="${TH / 2}"
+              stroke="#2B2A28" stroke-width="1.4" stroke-dasharray="3 2.4" opacity=".7"/>
+        ${pips}
+        <circle cx="${TW/2}" cy="${TH * 0.78}" r="2.2" fill="#2B2A28" opacity=".55"/>
+      </g>
+    </svg>
+  `;
+}
+
+/* Hand-drawn kerosene lamp. Drawn around its own viewBox (100×180).
+   .flame and .glow start hidden; .lit on the parent toggles them. */
+function lampSvg() {
+  return `
+    <svg viewBox="0 0 100 180" preserveAspectRatio="xMidYMax meet">
+      <!-- soft ground shadow -->
+      <ellipse cx="50" cy="172" rx="32" ry="4" fill="#2B2A28" opacity=".20" filter="url(#shadow)"/>
+
+      <!-- glow halo behind the lamp (only visible when lit) -->
+      <g class="glow">
+        <circle cx="50" cy="40" r="60" fill="url(#glowGrad)"/>
+      </g>
+
+      <g filter="url(#rough)">
+        <!-- chimney -->
+        <path d="M44 18 Q44 8 50 8 Q56 8 56 18 L56 38 L44 38 Z"
+              fill="#FBF7EC" stroke="#2B2A28" stroke-width="2" stroke-linejoin="round" filter="url(#crayon)"/>
+        <!-- gallery band -->
+        <rect x="40" y="38" width="20" height="6" rx="2"
+              fill="#FBF7EC" stroke="#2B2A28" stroke-width="2" filter="url(#crayon)"/>
+        <!-- fuel tank (curvy body) -->
+        <path d="M30 44 Q26 56 28 70 Q26 100 30 120 Q34 150 50 152 Q66 150 70 120 Q74 100 72 70 Q74 56 70 44 Z"
+              fill="#C24A1F" stroke="#2B2A28" stroke-width="2.2" stroke-linejoin="round" filter="url(#crayon)"/>
+        <!-- tank highlight -->
+        <path d="M34 56 Q32 80 34 110" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" opacity=".35"/>
+        <!-- base / foot -->
+        <ellipse cx="50" cy="156" rx="22" ry="5" fill="#8A8580" stroke="#2B2A28" stroke-width="2" filter="url(#crayon)"/>
+        <!-- knob on top -->
+        <circle cx="50" cy="6" r="3" fill="#2B2A28"/>
+      </g>
+
+      <!-- flame (only visible when lit) -->
+      <g class="flame">
+        <path d="M50 38
+                 C 56 28, 60 22, 56 14
+                 C 54 22, 58 24, 54 30
+                 C 56 26, 53 22, 50 12
+                 C 47 22, 44 26, 46 30
+                 C 42 24, 46 22, 44 14
+                 C 40 22, 44 28, 50 38 Z"
+              fill="url(#flameGrad)" stroke="#E07A2E" stroke-width="0.8" stroke-linejoin="round"/>
+        <ellipse cx="50" cy="28" rx="2.2" ry="5" fill="#FFE9A8" opacity=".9"/>
+      </g>
+    </svg>
+  `;
+}
+
+const dominoesEl = document.getElementById('dominoes');
+
+/* Stagger delays: each tile falls ~110ms after the previous one. */
+const TILE_FALL_DELAY   = 110;   // per tile, ms
+const TILE_FALL_DURATION= 550;   // matches CSS transition
+const LAMP_DELAY_AFTER_LAST = 120;
+
+/* State — single cycle:
+   IDLE → (click) FALLING → (last tile down + delay) LIT →
+   (delay) STANDING → IDLE. After first cycle completes, no subpage linkage. */
+let phase = 'IDLE';
+let timers = [];
+function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+
+function build() {
+  dominoesEl.innerHTML = '';
+  TILES.forEach((t, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'domino';
+    btn.dataset.i = String(i);
+    btn.setAttribute('aria-label', `第${i+1}块`);
+    btn.innerHTML = dominoSvg(t, i);
+    btn.addEventListener('click', onClick);
+    dominoesEl.appendChild(btn);
+  });
+
+  /* Lamp sits in its own column, separate from the dominoes grid. */
+  const lampEl = document.getElementById('lamp');
+  lampEl.innerHTML = lampSvg();
+}
+
+function setFallen(fallen) {
+  const tiles = [...dominoesEl.querySelectorAll('.domino')];
+  tiles.forEach((el, i) => {
+    el.classList.toggle('fallen', fallen);
+    /* Stagger by setting inline transition-delay. */
+    el.style.transitionDelay = (fallen ? i : (tiles.length - 1 - i)) * TILE_FALL_DELAY + 'ms';
+  });
+}
+
+function onClick() {
+  if (phase === 'FALLING' || phase === 'STANDING_UP' || phase === 'LIT') return;
+
+  if (phase === 'IDLE') {
+    phase = 'FALLING';
+    setFallen(true);
+
+    /* After the last tile finishes falling, light the lamp. */
+    const lastDelay = (TILES.length - 1) * TILE_FALL_DELAY + TILE_FALL_DURATION;
+    timers.push(setTimeout(() => {
+      phase = 'LIT';
+      document.getElementById('lamp').classList.add('lit');
+      /* Lamp stays lit for a beat, then everything stands back up. */
+      timers.push(setTimeout(() => {
+        phase = 'STANDING_UP';
+        document.getElementById('lamp').classList.remove('lit');
+        setFallen(false);
+        /* When the last tile finishes standing, return to IDLE. */
+        const total = (TILES.length - 1) * TILE_FALL_DELAY + TILE_FALL_DURATION;
+        timers.push(setTimeout(() => {
+          phase = 'IDLE';
+        }, total));
+      }, 1600));
+    }, lastDelay + LAMP_DELAY_AFTER_LAST));
+  }
+  /* If phase is anything else (post-cycle), do nothing — clicks no longer
+     trigger subpages or the cascade; the loop has already played once. */
+}
+
+build();
+</script>
+</body>
+</html>

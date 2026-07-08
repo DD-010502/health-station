@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>健康小站 · 管理后台</title>
+<style>
+  :root { --ink: #2B2A28; --accent: #C24A1F; --green: #4F9A55; --bg: #FDF8F5; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+  .login-wrap { max-width: 360px; margin: 120px auto 0; padding: 40px; background: #FFF; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,.08); }
+  .login-wrap h1 { margin: 0 0 24px; font-size: 22px; text-align: center; }
+  .login-wrap input { width: 100%; padding: 10px; margin-bottom: 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 15px; }
+  .login-wrap button { width: 100%; padding: 10px; border: 0; border-radius: 8px; background: var(--ink); color: #FFF; font-size: 15px; cursor: pointer; }
+  .login-wrap .err { color: var(--accent); font-size: 13px; margin-top: 8px; }
+  .app { display: none; max-width: 1200px; margin: 0 auto; padding: 24px; }
+  .app.show, .login-wrap.hidden { display: none; }
+  .app.show { display: block; }
+  .login-wrap.hidden { display: none; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #eee; }
+  .topbar h1 { margin: 0; font-size: 20px; }
+  .topbar button { padding: 6px 16px; border: 1.5px solid var(--ink); border-radius: 8px; background: #FFF; cursor: pointer; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 28px; }
+  .stat { background: #FFF; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+  .stat .num { font-size: 32px; font-weight: 700; } .stat .label { font-size: 12px; color: #888; margin-top: 4px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tabs button { padding: 8px 18px; border: 1.5px solid #ddd; border-radius: 20px; background: #FFF; cursor: pointer; font-size: 13px; }
+  .tabs button.on { background: var(--ink); color: #FFF; border-color: var(--ink); }
+  table { width: 100%; border-collapse: collapse; background: #FFF; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+  th, td { padding: 10px 14px; text-align: left; font-size: 13px; border-bottom: 1px solid #f0f0f0; }
+  th { background: #fafafa; font-weight: 600; }
+  tr:hover td { background: #fef9f5; }
+  tr.clickable { cursor: pointer; }
+  tr.clickable:hover td { background: #fff0e6; }
+  .detail-panel { background: #FFF; padding: 20px 24px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,.1); margin-bottom: 20px; }
+  .detail-panel h3 { margin: 0 0 14px; font-size: 18px; }
+  .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .detail-grid .item { background: #fafafa; padding: 12px 16px; border-radius: 8px; }
+  .detail-grid .item .num { font-size: 24px; font-weight: 700; color: var(--accent); }
+  .detail-grid .item .lbl { font-size: 12px; color: #888; }
+  .detail-section { margin-top: 16px; }
+  .detail-section h4 { font-size: 14px; margin: 0 0 8px; color: #555; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin: 2px; }
+  .tag.pdf { background: #e3f2fd; color: #1976d2; }
+  .tag.video { background: #fce4ec; color: #c62828; }
+  .tag.checkin { background: #e8f5e9; color: #2e7d32; }
+  .back-btn { display: inline-block; margin-bottom: 12px; padding: 6px 14px; border: 1.5px solid #ddd; border-radius: 8px; background: #FFF; cursor: pointer; font-size: 13px; }
+  .upload-section { background: #FFF; padding: 24px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.05); margin-bottom: 24px; }
+  .upload-section h3 { margin: 0 0 16px; }
+  .form-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+  .form-row label { font-size: 13px; color: #888; min-width: 60px; }
+  .form-row select, .form-row input[type=text] { padding: 8px 12px; border: 1.5px solid #ddd; border-radius: 6px; font-size: 14px; }
+  .form-row input[type=file] { font-size: 13px; }
+  .form-row input[type=text] { width: 220px; }
+  #videoFields { background: #fafafa; padding: 14px; border-radius: 8px; margin: 8px 0; }
+  .toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: 8px; color: #FFF; font-size: 14px; z-index: 999; animation: fadeIn .3s; }
+  .toast.ok { background: var(--green); } .toast.err { background: var(--accent); }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+<div class="login-wrap" id="loginWrap">
+  <h1>🔐 健康小站管理</h1>
+  <input id="loginUser" placeholder="用户名" autocomplete="off" />
+  <input id="loginPass" type="password" placeholder="密码" />
+  <button id="loginBtn">登录</button>
+  <div class="err" id="loginErr"></div>
+</div>
+
+<div class="app" id="app">
+  <div class="topbar">
+    <h1>📊 健康小站 · 管理后台</h1>
+    <button id="logoutBtn">退出</button>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="tabs">
+    <button class="on" data-tab="upload">📤 上传文件</button>
+    <button data-tab="events">📋 事件列表</button>
+    <button data-tab="users">👥 用户列表</button>
+    <button data-tab="videos">🎬 视频统计</button>
+    <button data-tab="content">📝 模块内容</button>
+  </div>
+
+  <div id="tabContent"></div>
+</div>
+
+<div id="toast" class="toast" style="display:none"></div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('adminToken');
+
+/* ---------- Auth ---------- */
+if (token) showApp();
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  if (!u || !p) return;
+  try {
+    const r = await fetch(API + '/api/users/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: u, password: p }),
+    });
+    if (!r.ok) { const e = await r.json(); document.getElementById('loginErr').textContent = e.error; return; }
+    const data = await r.json();
+    token = data.token;
+    localStorage.setItem('adminToken', token);
+    showApp();
+  } catch (e) { document.getElementById('loginErr').textContent = '网络错误'; }
+});
+
+function logout() { localStorage.removeItem('adminToken'); token = null; location.reload(); }
+document.getElementById('logoutBtn').addEventListener('click', logout);
+
+function showApp() {
+  document.getElementById('loginWrap').classList.add('hidden');
+  document.getElementById('app').classList.add('show');
+  loadStats();
+  loadTab('upload');
+}
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll('.tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    loadTab(btn.dataset.tab);
+  });
+});
+
+async function loadTab(name) {
+  const c = document.getElementById('tabContent');
+  switch (name) {
+    case 'upload': renderUpload(c); break;
+    case 'events': await renderEvents(c); break;
+    case 'users':  await renderUsers(c); break;
+    case 'videos': await renderVideos(c); break;
+    case 'content': await renderContent(c); break;
+  }
+}
+
+/* ---------- Upload ---------- */
+const MODULE_OPTS = '<option value="diet">营养饮食</option><option value="exercise">积极运动</option><option value="sleep">良好睡眠</option><option value="screen">合理视屏</option><option value="habits">禁烟禁酒</option><option value="mental">心理健康</option><option value="loop">环环相扣</option><option value="action">计划与行动</option>';
+
+function renderUpload(el) {
+  el.innerHTML = `
+    <div class="upload-section">
+      <h3>上传文件到 OSS</h3>
+      <div class="form-row">
+        <label>类型</label>
+        <select id="upType">
+          <option value="pdf">PDF</option>
+          <option value="video">视频</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>板块</label>
+        <select id="upModule">${MODULE_OPTS}</select>
+      </div>
+      <div class="form-row">
+        <label>标题</label>
+        <input type="text" id="upTitle" placeholder="文件标题（可选）" />
+      </div>
+      <div id="videoFields" style="display:none;">
+        <div class="form-row">
+          <label>说明</label>
+          <input type="text" id="upDesc" placeholder="视频简介，显示在标题下方（可选）" style="width:320px;" />
+        </div>
+        <div class="form-row">
+          <label>封面图</label>
+          <input type="file" id="upCover" accept="image/*" />
+        </div>
+        <div class="form-row">
+          <label>视频文件</label>
+          <input type="file" id="upFileVideo" accept="video/*" />
+        </div>
+      </div>
+      <div id="pdfFields">
+        <div class="form-row">
+          <label>PDF 文件</label>
+          <input type="file" id="upFilePdf" accept=".pdf" />
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:12px;">
+        <button id="upBtn" style="padding:10px 24px;background:var(--ink);color:#FFF;border:0;border-radius:8px;cursor:pointer;font-size:14px;">上传</button>
+      </div>
+      <div id="upResult" style="margin-top:12px;font-size:13px;"></div>
+    </div>
+  `;
+
+  // Toggle fields
+  const upType = document.getElementById('upType');
+  const videoFields = document.getElementById('videoFields');
+  const pdfFields = document.getElementById('pdfFields');
+  function toggleFields() {
+    videoFields.style.display = upType.value === 'video' ? 'block' : 'none';
+    pdfFields.style.display = upType.value === 'pdf' ? 'block' : 'none';
+  }
+  upType.addEventListener('change', toggleFields);
+  toggleFields();
+
+  document.getElementById('upBtn').addEventListener('click', async () => {
+    const type = upType.value;
+    const form = new FormData();
+    form.append('type', type);
+    form.append('module_id', document.getElementById('upModule').value);
+    form.append('title', document.getElementById('upTitle').value || '');
+
+    if (type === 'pdf') {
+      const file = document.getElementById('upFilePdf').files[0];
+      if (!file) return toast('请选择 PDF 文件', 'err');
+      form.append('file', file);
+    } else {
+      const videoFile = document.getElementById('upFileVideo').files[0];
+      if (!videoFile) return toast('请选择视频文件', 'err');
+      form.append('file', videoFile);
+      const desc = document.getElementById('upDesc').value.trim();
+      if (desc) form.append('desc', desc);
+      const coverFile = document.getElementById('upCover').files[0];
+      if (coverFile) form.append('cover', coverFile);
+    }
+
+    try {
+      const r = await fetch(API + '/api/admin/upload', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token },
+        body: form,
+      });
+      const d = await r.json();
+      if (r.ok) {
+        let html = '✅ 上传成功';
+        if (d.url) html += `<br/>文件: <a href="${d.url}" target="_blank">${d.url}</a>`;
+        if (d.coverUrl) html += `<br/>封面: <a href="${d.coverUrl}" target="_blank">${d.coverUrl}</a>`;
+        html += `<br/><span style="color:#888;font-size:12px;">ID: ${d.id}</span>`;
+        document.getElementById('upResult').innerHTML = html;
+        toast('上传成功', 'ok');
+      } else {
+        document.getElementById('upResult').textContent = '❌ ' + d.error;
+      }
+    } catch (e) { document.getElementById('upResult').textContent = '❌ 网络错误'; }
+  });
+}
+
+/* ---------- Stats ---------- */
+async function loadStats() {
+  try {
+    const r = await fetch(API + '/api/admin/stats', { headers: { Authorization: 'Bearer ' + token } });
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById('stats').innerHTML = `
+      <div class="stat"><div class="num">${d.totalUsers||0}</div><div class="label">总用户</div></div>
+      <div class="stat"><div class="num">${d.totalEvents||0}</div><div class="label">总事件</div></div>
+      <div class="stat"><div class="num">${d.todayEvents||0}</div><div class="label">今日事件</div></div>
+      <div class="stat"><div class="num">${d.totalVideos||0}</div><div class="label">视频记录</div></div>
+      <div class="stat"><div class="num">${d.todayVideos||0}</div><div class="label">今日观看</div></div>
+    `;
+  } catch (e) {}
+}
+
+/* ---------- Events Table ---------- */
+async function renderEvents(el) {
+  el.innerHTML = '<p>加载中...</p>';
+  try {
+    const r = await fetch(API + '/api/admin/events?limit=100', { headers: { Authorization: 'Bearer ' + token } });
+    const d = await r.json();
+    let html = `<p style="margin-bottom:8px;font-size:13px;color:#888;">共 ${d.total} 条（显示最近 ${d.data.length} 条）</p>`;
+    html += '<table><tr><th>时间</th><th>用户</th><th>类型</th><th>模块</th><th>目标</th></tr>';
+    d.data.forEach(e => {
+      html += `<tr><td>${new Date(e.created_at).toLocaleString('zh-CN')}</td><td>${e.user_name}</td><td>${e.type}</td><td>${e.module_id||'-'}</td><td>${e.target_id||'-'}</td></tr>`;
+    });
+    html += '</table>';
+    el.innerHTML = html;
+  } catch (e) { el.innerHTML = '<p>加载失败</p>'; }
+}
+
+/* ---------- Users Table ---------- */
+async function renderUsers(el) {
+  el.innerHTML = '<p>加载中...</p>';
+  try {
+    const r = await fetch(API + '/api/admin/users?limit=100', { headers: { Authorization: 'Bearer ' + token } });
+    const d = await r.json();
+    let html = `<p style="margin-bottom:8px;font-size:13px;color:#888;">共 ${d.total} 位用户 · 点击用户查看详情</p>`;
+    html += '<table><tr><th>昵称</th><th>事件数</th><th>最后活跃</th><th>注册时间</th></tr>';
+    d.data.forEach(u => {
+      html += `<tr class="clickable" onclick="showUserDetail('${u.id}')">
+        <td><b>${u.name}</b></td>
+        <td>${u.event_count}</td>
+        <td>${u.last_active ? new Date(u.last_active).toLocaleString('zh-CN') : '-'}</td>
+        <td>${new Date(u.created_at).toLocaleString('zh-CN')}</td>
+      </tr>`;
+    });
+    html += '</table>';
+    el.innerHTML = html;
+  } catch (e) { el.innerHTML = '<p>加载失败</p>'; }
+}
+
+/* ---------- User Detail ---------- */
+async function showUserDetail(userId) {
+  // Switch to users tab first
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('on'));
+  document.querySelector('[data-tab="users"]').classList.add('on');
+
+  const el = document.getElementById('tabContent');
+  el.innerHTML = '<p>加载中...</p>';
+
+  try {
+    const [detailR, eventsR, videosR] = await Promise.all([
+      fetch(API + '/api/admin/users/' + userId, { headers: { Authorization: 'Bearer ' + token } }),
+      fetch(API + '/api/admin/users/' + userId + '/events?limit=50', { headers: { Authorization: 'Bearer ' + token } }),
+      fetch(API + '/api/admin/users/' + userId + '/video-watch?limit=50', { headers: { Authorization: 'Bearer ' + token } }),
+    ]);
+    const detail = await detailR.json();
+    const events  = await eventsR.json();
+    const videos  = await videosR.json();
+
+    if (!detailR.ok) { el.innerHTML = '<p>用户不存在</p>'; return; }
+
+    const u = detail.user;
+    const vs = detail.videoSummary;
+    const ck = detail.checkin;
+
+    // Event type tags
+    const typeTags = (detail.eventTypes || []).map(t =>
+      `<span class="tag ${t.type.includes('pdf')?'pdf':t.type.includes('video')?'video':t.type.includes('checkin')?'checkin':''}">${t.type}: ${t.count}</span>`
+    ).join(' ');
+
+    // Checkin summary
+    let checkinHtml = '';
+    if (ck && ck.doneDates && ck.doneDates.length > 0) {
+      checkinHtml = `
+        <div class="detail-section">
+          <h4>📅 打卡记录（${ck.doneDates.length} 天）</h4>
+          <p style="font-size:13px;color:#888;">最近打卡日期: ${ck.doneDates.slice(-5).reverse().join(' · ')}</p>
+          <p style="font-size:13px;color:#888;">
+            打卡任务: ${(ck.todos||[]).map(t=>t.label).join('、') || '无'}<br/>
+            累计完成: ${Object.values(ck.doneTasks||{}).flat().length} 次
+          </p>
+        </div>`;
+    } else {
+      checkinHtml = '<div class="detail-section"><h4>📅 打卡记录</h4><p style="font-size:13px;color:#888;">暂无打卡数据</p></div>';
+    }
+
+    // Recent events
+    let eventsHtml = '<div class="detail-section"><h4>📋 最近事件</h4>';
+    if (events.data && events.data.length > 0) {
+      eventsHtml += '<table><tr><th>时间</th><th>类型</th><th>模块</th><th>详情</th></tr>';
+      events.data.forEach(e => {
+        let detailText = e.target_id || '';
+        try { if (e.payload) { const p = JSON.parse(e.payload); detailText = p.task_label || p.href || p.name || detailText; } } catch(_) {}
+        eventsHtml += `<tr><td>${new Date(e.created_at).toLocaleString('zh-CN')}</td><td>${e.type}</td><td>${e.module_id||'-'}</td><td style="font-size:12px;color:#888;">${detailText}</td></tr>`;
+      });
+      eventsHtml += '</table>';
+    } else {
+      eventsHtml += '<p style="font-size:13px;color:#888;">暂无事件</p>';
+    }
+    eventsHtml += '</div>';
+
+    // Video watch records
+    let videosHtml = '<div class="detail-section"><h4>🎬 视频观看记录</h4>';
+    if (videos.data && videos.data.length > 0) {
+      // Group by session
+      const sessions = {};
+      videos.data.forEach(v => {
+        if (!sessions[v.session_id]) sessions[v.session_id] = [];
+        sessions[v.session_id].push(v);
+      });
+      videosHtml += '<table><tr><th>会话</th><th>视频</th><th>模块</th><th>进度</th><th>时间</th></tr>';
+      Object.entries(sessions).slice(0, 20).forEach(([sid, recs]) => {
+        const last = recs[0];
+        videosHtml += `<tr>
+          <td style="font-size:11px;">${sid.slice(0,12)}...</td>
+          <td>${last.video_id}</td>
+          <td>${last.module_id||'-'}</td>
+          <td>${last.percent}%</td>
+          <td>${new Date(last.created_at).toLocaleString('zh-CN')}</td>
+        </tr>`;
+      });
+      videosHtml += '</table>';
+    } else {
+      videosHtml += '<p style="font-size:13px;color:#888;">暂无观看记录</p>';
+    }
+    videosHtml += '</div>';
+
+    // Build full panel
+    el.innerHTML = `
+      <button class="back-btn" onclick="loadTab('users')">← 返回用户列表</button>
+      <div class="detail-panel">
+        <h3>👤 ${u.name}</h3>
+        <p style="font-size:12px;color:#888;">ID: ${u.id} · 注册: ${new Date(u.created_at).toLocaleString('zh-CN')} · 最后更新: ${new Date(u.updated_at).toLocaleString('zh-CN')}</p>
+
+        <div class="detail-grid">
+          <div class="item"><div class="num">${detail.totalEvents}</div><div class="lbl">总事件数</div></div>
+          <div class="item"><div class="num">${vs.totalSessions}</div><div class="lbl">视频观看会话</div></div>
+          <div class="item"><div class="num">${vs.avgPercent}%</div><div class="lbl">平均完成度</div></div>
+          <div class="item"><div class="num">${Math.round(vs.totalWatchedSec / 60)}</div><div class="lbl">观看分钟数</div></div>
+          <div class="item"><div class="num">${ck ? ck.doneDates.length : 0}</div><div class="lbl">打卡天数</div></div>
+        </div>
+
+        <div style="margin-bottom:8px;"><b>事件分布:</b> ${typeTags || '暂无'}</div>
+
+        ${checkinHtml}
+        ${eventsHtml}
+        ${videosHtml}
+      </div>
+    `;
+  } catch (e) { el.innerHTML = '<p>加载失败: ' + e.message + '</p>'; }
+}
+
+/* ---------- Videos Table ---------- */
+async function renderVideos(el) {
+  el.innerHTML = '<p>加载中...</p>';
+  try {
+    const r = await fetch(API + '/api/admin/video-stats', { headers: { Authorization: 'Bearer ' + token } });
+    const d = await r.json();
+    let html = '<table><tr><th>视频 ID</th><th>模块</th><th>观看人次</th><th>观看人数</th><th>平均完成%</th><th>平均时长(s)</th></tr>';
+    d.videoStats.forEach(v => {
+      html += `<tr><td>${v.video_id}</td><td>${v.module_id||'-'}</td><td>${v.total_sessions}</td><td>${v.total_users}</td><td>${v.avg_percent}%</td><td>${v.avg_duration}</td></tr>`;
+    });
+    html += '</table>';
+    el.innerHTML = html;
+  } catch (e) { el.innerHTML = '<p>加载失败</p>'; }
+}
+
+/* ---------- Content Editor ---------- */
+async function renderContent(el) {
+  el.innerHTML = '<p>加载中...</p>';
+  try {
+    const r = await fetch(API + '/api/content', { headers: { Authorization: 'Bearer ' + token } });
+    const d = await r.json();
+    const modules = Object.entries(d);
+    let html = '';
+    modules.forEach(([key, mod]) => {
+      const pdfs = mod.pdfs || [];
+      const videos = mod.videos || [];
+      html += `<details style="background:#FFF;padding:14px 18px;border-radius:10px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,.05);">
+        <summary style="font-weight:600;cursor:pointer;">${mod.name} (${key}) — ${pdfs.length} PDF / ${videos.length} 视频</summary>
+        <div style="margin-top:10px;">
+          <p style="font-size:12px;color:#888;">卷首语: ${(mod.intro||{}).title||'未设置'}</p>
+          <p style="font-size:12px;color:#888;">PDF: ${pdfs.map(p=>p.title).join(', ')||'无'}</p>
+          <p style="font-size:12px;color:#888;">视频: ${videos.map(v=>v.title).join(', ')||'无'}</p>
+        </div>
+      </details>`;
+    });
+    html += '<p style="font-size:12px;color:#888;margin-top:12px;">💡 通过 POST /api/content/:moduleId 更新模块内容（JSON），然后前端注入 window.CONTENT_DATA 即可生效</p>';
+    el.innerHTML = html;
+  } catch (e) { el.innerHTML = '<p>加载失败</p>'; }
+}
+
+/* ---------- Toast ---------- */
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + (type||'ok'); t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2000);
+}
+</script>
+</body>
+</html>

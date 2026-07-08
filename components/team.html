@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>团队 · 介绍信</title>
+<style>
+  :root {
+    --ink: #2B2A28;
+    --grey: #8A8580;
+    --paper: #F3E9D2;
+    --paper-edge: #E6D8B8;
+    --accent: #C24A1F;
+    --seal: #8B2E1F;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: transparent;
+    color: var(--ink);
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", "PingFang SC", cursive, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ---------- Header ---------- */
+  .header {
+    text-align: center;
+    padding: 32px 24px 4px;
+  }
+  .header .eyebrow {
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", cursive;
+    font-size: 11px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--grey);
+    margin-bottom: 8px;
+  }
+  .header h1 {
+    margin: 0;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", cursive;
+    font-weight: 500;
+    
+    font-size: clamp(28px, 3.4vw, 44px);
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .header h1 .cn { font-style: normal; }
+
+  /* ---------- Stage: team photo on the left, scroll on the right ---------- */
+  .stage {
+    padding: 16px 32px 24px;
+    max-width: 100%;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 56px;
+    align-items: center;
+  }
+  @media (max-width: 900px) {
+    .stage { grid-template-columns: 1fr; }
+  }
+
+  .team-photo {
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  .team-photo img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 6px;
+  }
+
+  .scroll-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 360px;
+  }
+
+  /* ---------- Envelope (open, with a letter about to slide out) ---------- */
+  .scroll {
+    width: 320px;
+    height: 360px;
+    cursor: pointer;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    outline: none;
+    transition: transform .35s cubic-bezier(.55,.05,.25,1);
+    position: relative;
+  }
+  .scroll:hover { transform: translateY(-6px) rotate(-1.5deg); }
+  .scroll.unroll { transform: rotate(-3deg) scale(1.04); }
+  .scroll svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+  /* The paper tucked inside slides upward when .pulled is added to the
+     button, simulating it being drawn out of the envelope. */
+  .scroll svg .letter-paper {
+    transform-origin: 50% 100%;
+    transform: translateY(0);
+    transition: transform .8s cubic-bezier(.55,.05,.25,1);
+  }
+  .scroll.unroll svg .letter-paper {
+    transform: translateY(-90px);
+  }
+
+  /* ---------- Letter overlay (modal) ---------- */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(43, 42, 40, .55);
+    backdrop-filter: blur(2px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 24px;
+  }
+  .overlay.open { display: flex; animation: fadeIn .35s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .letter {
+    /* occupies ~70% of the viewport with a max width */
+    width: min(880px, 78vw);
+    max-height: 85vh;
+    overflow-y: auto;
+    background: var(--paper);
+    border: 1px solid var(--paper-edge);
+    box-shadow:
+      0 1px 0 rgba(43,42,40,.08),
+      0 30px 60px -20px rgba(43,42,40,.35),
+      inset 0 0 80px rgba(194, 166, 110, .25);
+    padding: 56px 64px 72px;
+    position: relative;
+    transform: scale(.92) translateY(20px);
+    opacity: 0;
+    transition: transform .45s cubic-bezier(.2,.7,.2,1), opacity .35s ease;
+    /* faint paper grain */
+    background-image:
+      radial-gradient(rgba(139, 110, 74, .07) 1px, transparent 1px);
+    background-size: 4px 4px;
+  }
+  .overlay.open .letter {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+
+  .letter-top {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: -36px;
+  }
+  .close {
+    background: #FFFFFF;
+    border: 1px solid var(--ink);
+    color: var(--ink);
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    font-family: inherit;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform .2s ease, background .2s ease;
+  }
+  .close:hover { background: var(--ink); color: var(--paper); transform: rotate(90deg); }
+
+  .letter-head {
+    text-align: center;
+    margin-bottom: 28px;
+    border-bottom: 1px solid rgba(43, 42, 40, .25);
+    padding-bottom: 18px;
+  }
+  .letter-head .eyebrow {
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", cursive;
+    font-size: 10px;
+    letter-spacing: .32em;
+    text-transform: uppercase;
+    color: var(--grey);
+    margin-bottom: 8px;
+  }
+  .letter-head h2 {
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", cursive;
+    font-weight: 500;
+    
+    font-size: clamp(22px, 3vw, 30px);
+    margin: 0 0 6px;
+    color: var(--ink);
+  }
+  .letter-head h2 .cn { font-style: normal; }
+  .letter-head .date {
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", cursive;
+    font-size: 11px;
+    color: var(--grey);
+    letter-spacing: .12em;
+  }
+
+  .letter-body p {
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", cursive;
+    font-size: 16px;
+    line-height: 1.9;
+    margin: 0 0 16px;
+    color: var(--ink);
+    text-align: justify;
+  }
+  .letter-body p .lede {
+    font-weight: 500;
+    
+  }
+
+  .letter-sign {
+    margin-top: 36px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 16px;
+  }
+  .letter-sign .text {
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", cursive;
+    
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .letter-sign .seal {
+    width: 78px; height: 78px;
+    border: 2px solid var(--seal);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--seal);
+    font-family: "Songti SC", "STSong", serif;
+    font-size: 18px;
+    line-height: 1;
+    text-align: center;
+    transform: rotate(-8deg);
+    opacity: .85;
+  }
+  .letter-sign .seal span { font-size: 11px; letter-spacing: .12em; display: block; margin-top: 2px; }
+
+  .corner-tag {
+    position: absolute;
+    bottom: 14px; right: 22px;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", cursive;
+    font-size: 10px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--grey);
+  }
+</style>
+</head>
+<body>
+  <main class="stage">
+    <div class="team-photo">
+      <img src="../assets/images/team.jpg" alt="团队合照" />
+    </div>
+
+    <div class="scroll-area">
+      <button class="scroll" id="scrollBtn" aria-label="打开介绍信">
+        <!-- SVG scroll injected by JS -->
+      </button>
+    </div>
+  </main>
+
+  <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="letter-title">
+    <article class="letter">
+      <div class="letter-top">
+        <button class="close" id="closeBtn" aria-label="关闭">×</button>
+      </div>
+
+      <div class="letter-head">
+        <div class="eyebrow" id="letterEyebrow"></div>
+        <h2 id="letter-title"></h2>
+        <div class="date" id="letterDate"></div>
+      </div>
+
+      <!-- Letter body is rendered from TEAM_LETTER_PARAGRAPHS (or
+           window.TEAM_LETTER_DATA from the backend) so the wording
+           stays editable without touching HTML. -->
+      <div class="letter-body" id="letterBody"></div>
+
+      <div class="letter-sign">
+        <div class="text">
+          你的健康小团队<br/>
+          于二〇二六年夏
+        </div>
+        <div class="seal">
+          TEAM
+          <span>2026</span>
+        </div>
+      </div>
+
+      <div class="corner-tag" id="cornerTag"></div>
+    </article>
+  </div>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <!-- Wobbly outline -->
+      <filter id="rough" x="-10%" y="-10%" width="120%" height="120%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="7" result="t"/>
+        <feDisplacementMap in="SourceGraphic" in2="t" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+      <!-- Paper grain -->
+      <filter id="paperGrain" x="-5%" y="-5%" width="110%" height="110%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" result="g"/>
+        <feColorMatrix in="g" type="matrix"
+          values="0 0 0 0 0
+                  0 0 0 0 0
+                  0 0 0 0 0
+                  0 0 0 0.18 0" result="ga"/>
+        <feComposite in="ga" in2="SourceGraphic" operator="in" result="gm"/>
+        <feMerge>
+          <feMergeNode in="SourceGraphic"/>
+          <feMergeNode in="gm"/>
+        </feMerge>
+      </filter>
+      <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="8"/>
+      </filter>
+
+      <!-- Gradient for scroll parchment -->
+      <linearGradient id="parchment" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#F1E2BE"/>
+        <stop offset="50%"  stop-color="#E8D2A1"/>
+        <stop offset="100%" stop-color="#D9BE89"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+<script>
+/* ---------- Envelope ---------- */
+function scrollSvg() {
+  return `
+    <svg viewBox="0 0 320 360" preserveAspectRatio="xMidYMid meet">
+      <!-- soft ground shadow -->
+      <ellipse cx="160" cy="346" rx="130" ry="6" fill="#2B2A28" opacity=".18" filter="url(#shadow)"/>
+
+      <g filter="url(#rough)">
+        <!-- Envelope back (the panel behind the opening) -->
+        <path d="M 40 110
+                 L 280 110
+                 L 280 320
+                 Q 280 332, 268 332
+                 L 52 332
+                 Q 40 332, 40 320 Z"
+              fill="#E8D2A1" stroke="#2B2A28" stroke-width="2.4" stroke-linejoin="round"
+              filter="url(#paperGrain)"/>
+
+        <!-- Opened top flap, folded back behind. We draw it as a thin
+             trapezoid sitting at the top edge — because the flap is folded
+             backward, only its underside is visible. -->
+        <path d="M 40 110
+                 L 280 110
+                 L 246 60
+                 Q 160 36, 74 60 Z"
+              fill="#D9BE89" stroke="#2B2A28" stroke-width="2.4" stroke-linejoin="round"
+              filter="url(#paperGrain)"/>
+
+        <!-- Subtle flap crease line -->
+        <line x1="40" y1="110" x2="280" y2="110" stroke="#2B2A28" stroke-width="1.4" opacity=".55"/>
+
+        <!-- A piece of letter paper sticking up from inside the envelope,
+             taller than the envelope so we can see its top portion. This
+             is what animates "pulling out" when the user clicks. -->
+        <g class="letter-paper">
+          <rect x="80" y="20" width="160" height="140" rx="2"
+                fill="#FBF4DD" stroke="#2B2A28" stroke-width="2.2"
+                filter="url(#paperGrain)"/>
+          <!-- a few faint lines of "writing" on the visible portion -->
+          <line x1="100" y1="50" x2="220" y2="50" stroke="#2B2A28" stroke-width="1.2" opacity=".55"/>
+          <line x1="100" y1="68" x2="208" y2="68" stroke="#2B2A28" stroke-width="1.2" opacity=".55"/>
+          <line x1="100" y1="86" x2="220" y2="86" stroke="#2B2A28" stroke-width="1.2" opacity=".55"/>
+          <line x1="100" y1="104" x2="190" y2="104" stroke="#2B2A28" stroke-width="1.2" opacity=".55"/>
+          <line x1="100" y1="122" x2="220" y2="122" stroke="#2B2A28" stroke-width="1.2" opacity=".55"/>
+        </g>
+
+        <!-- Front face of the envelope (drawn on top of the letter so the
+             letter only shows above the front edge). This V-shape gives
+             the unmistakable "opened envelope" silhouette. -->
+        <path d="M 40 110
+                 L 160 220
+                 L 280 110
+                 L 280 320
+                 Q 280 332, 268 332
+                 L 52 332
+                 Q 40 332, 40 320 Z"
+              fill="#E8C988" stroke="#2B2A28" stroke-width="2.4" stroke-linejoin="round"
+              filter="url(#paperGrain)"/>
+
+        <!-- The V crease line of the front opening, drawn slightly above
+             to add depth -->
+        <path d="M 40 110 L 160 220 L 280 110"
+              fill="none" stroke="#2B2A28" stroke-width="1.6" opacity=".5"/>
+
+        <!-- A small wax seal stuck on the lower right corner -->
+        <circle cx="232" cy="288" r="14" fill="#8B2E1F" stroke="#2B2A28" stroke-width="2"/>
+        <circle cx="232" cy="288" r="8"  fill="none" stroke="#F3E9D2" stroke-width="1.2" opacity=".7"/>
+      </g>
+    </svg>
+  `;
+}
+
+const scrollEl  = document.getElementById('scrollBtn');
+const overlayEl = document.getElementById('overlay');
+const closeEl   = document.getElementById('closeBtn');
+
+scrollEl.innerHTML = scrollSvg();
+
+/* =====================================================================
+   Letter content (editable)
+   ---------------------------------------------------------------------
+   The greeting, body paragraphs, sign-off and date can all be overridden
+   by setting window.TEAM_LETTER_DATA before this script runs (e.g. the
+   backend injects it). Each paragraph may contain inline HTML (<strong>,
+   <br/>, <em>...).
+   ===================================================================== */
+const TEAM_LETTER_DATA = Object.assign({
+  greeting: '亲爱的同学/朋友：',
+  letterEyebrow: 'Letter · No. 01',
+  letterTitle: '<em>给青少年</em><span class="cn"> 的一封信</span>',
+  letterDate: '写于 二〇二六年 · 初夏',
+  cornerTag: 'Team · Letter 01',
+  paragraphs: [
+    '你好呀~ 欢迎来到「How do you keep healthy?」健康小站！',
+    '我们是一支热爱健康教育的团队，致力于用最轻松、最有趣的方式，帮助大家了解健康知识、养成良好的生活习惯。',
+    '在这里，你可以：<br/>🔹 学习健康饮食、运动、睡眠、屏幕使用以及心理健康的小知识<br/>🔹 了解烟酒对身体的危害，学会勇敢说「不」<br/>🔹 每天打卡记录健康习惯，解锁闪亮徽章<br/>🔹 和小伙伴一起，做自己的健康小英雄！',
+    '希望这个小站能成为你健康生活的好伙伴。记住，健康不是一时兴起，而是日复一日的小选择哦~',
+  ],
+  signOff: '—— 你的健康小团队 ❤️',
+  signAlign: 'right',
+  signLabel: '你的健康小团队<br/>于二〇二六年夏',
+}, window.TEAM_LETTER_DATA || {});
+
+(function renderLetterMeta() {
+  const eyebrow = document.getElementById('letterEyebrow');
+  if (eyebrow && TEAM_LETTER_DATA.letterEyebrow) eyebrow.textContent = TEAM_LETTER_DATA.letterEyebrow;
+  const title = document.getElementById('letter-title');
+  if (title && TEAM_LETTER_DATA.letterTitle) title.innerHTML = TEAM_LETTER_DATA.letterTitle;
+  const date = document.getElementById('letterDate');
+  if (date && TEAM_LETTER_DATA.letterDate) date.textContent = TEAM_LETTER_DATA.letterDate;
+  const corner = document.getElementById('cornerTag');
+  if (corner && TEAM_LETTER_DATA.cornerTag) corner.textContent = TEAM_LETTER_DATA.cornerTag;
+})();
+
+(function renderLetter() {
+  const body = document.getElementById('letterBody');
+  if (!body) return;
+  const greeting = TEAM_LETTER_DATA.greeting
+    ? `<p>${TEAM_LETTER_DATA.greeting}</p>`
+    : '';
+  const paragraphs = (TEAM_LETTER_DATA.paragraphs || [])
+    .map(p => `<p>${p}</p>`).join('');
+  const align = TEAM_LETTER_DATA.signAlign || 'right';
+  const signOff = TEAM_LETTER_DATA.signOff
+    ? `<p style="text-align:${align}; margin-top:24px;">${TEAM_LETTER_DATA.signOff}</p>`
+    : '';
+  body.innerHTML = greeting + paragraphs + signOff;
+})();
+
+/* Mirror the sign label into the existing card-style DOM below. */
+(function renderSignLabel() {
+  const sign = document.querySelector('.letter-sign .text');
+  if (sign && TEAM_LETTER_DATA.signLabel) sign.innerHTML = TEAM_LETTER_DATA.signLabel;
+})();
+
+/* Report a "open letter" event (mirrors the backend-tracking stub from
+   health-detail.html — provide a track() if the backend is wired). */
+function track(payload) {
+  if (window.__HEALTH_DEBUG__) console.log('[track]', payload);
+  try {
+    const body = Object.assign({ type: 'view_team_letter', ts: Date.now() }, payload);
+    if (navigator.sendBeacon) navigator.sendBeacon('/api/track/event', JSON.stringify(body));
+  } catch (e) {}
+}
+
+function openLetter() {
+  /* Add .unroll — CSS drives both the envelope tilt and the paper sliding
+     out of the envelope; simultaneously open the overlay. */
+  scrollEl.classList.add('unroll');
+  setTimeout(() => {
+    overlayEl.classList.add('open');
+    track({ event: 'open_letter' });
+  }, 80);
+}
+function closeLetter() {
+  overlayEl.classList.remove('open');
+  /* Wait for the overlay fade-out before retracting the paper, so the
+     user sees the letter fully close before the paper slides back in. */
+  setTimeout(() => scrollEl.classList.remove('unroll'), 250);
+}
+
+scrollEl.addEventListener('click', openLetter);
+closeEl.addEventListener('click', closeLetter);
+overlayEl.addEventListener('click', (e) => { if (e.target === overlayEl) closeLetter(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLetter(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>计划与行动</title>
+<style>
+  :root {
+    --ink: #2B2A28;
+    --grey: #8A8580;
+    --wood: #C49A6C;
+    --wood-dark: #8B6A4A;
+    --accent: #C24A1F;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: transparent;
+    color: var(--ink);
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", "PingFang SC", cursive, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .header {
+    text-align: center;
+    padding: 28px 24px 4px;
+  }
+  .header .eyebrow {
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", cursive;
+    font-size: 11px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--grey);
+    margin-bottom: 8px;
+  }
+  .header h1 {
+    margin: 0;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", cursive;
+    font-weight: 500;
+    
+    font-size: clamp(28px, 3.4vw, 44px);
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .header h1 .cn { font-style: normal; }
+
+  /* Two-column stage: interactive scene on the left, illustration on the right. */
+  .stage {
+    padding: 12px 32px 16px;
+    max-width: 100%;
+    margin: 0 auto;
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .stage { grid-template-columns: 1fr; }
+  }
+
+  .workbench {
+    position: relative;
+    width: 100%;
+    max-width: 680px;          /* wider so the swing has room to read large */
+    margin: 36px auto 0;
+    height: 780px;             /* taller to accommodate scaled-up parts */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .hammer-wrap {
+    width: 520px;              /* wider hammer area */
+    height: 320px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .hammer {
+    width: 520px;              /* proportional to hammer-wrap */
+    height: 320px;
+    cursor: pointer;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    outline: none;
+    /* Pivot at the far left end of the handle in the original 360-unit
+       coordinate system: x = 60/360 * 520 ≈ 87; y center is 110/220 * 320
+       = 160. Recompute every resize if we ever care to — for the static
+       aspect we just commit those numbers here. */
+    transform-origin: 87px 160px;
+    transition: transform .35s cubic-bezier(.6,.05,.25,1);
+    position: relative;
+  }
+  .hammer svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .hammer:hover:not(.struck) { transform: rotate(-8deg); }
+
+  @keyframes swingDown {
+    0%   { transform: rotate(0deg); }
+    45%  { transform: rotate(60deg); }
+    55%  { transform: rotate(62deg); }
+    100% { transform: rotate(0deg); }
+  }
+  .hammer.swing { animation: swingDown .85s cubic-bezier(.55,.05,.25,1) forwards; }
+
+  .tenon {
+    width: 360px;              /* was 240 — bigger */
+    height: 150px;             /* was 100 */
+    position: relative;
+    margin-top: 0;
+    transition: transform .4s cubic-bezier(.55,.05,.25,1);
+    z-index: 2;
+  }
+  .tenon svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .tenon.drop { transform: translateY(90px); }  /* proportional drop depth */
+
+  .mortise {
+    width: 360px;              /* was 240 */
+    height: 150px;             /* was 100 */
+    position: relative;
+    margin-top: -90px;         /* match new drop depth */
+    z-index: 1;
+  }
+  .mortise svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .mortise.shake { animation: shake .35s ease; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-3px); }
+    50% { transform: translateX(3px); }
+    80% { transform: translateX(-1.5px); }
+  }
+
+  .sparks {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 360px; height: 220px;
+    pointer-events: none;
+    opacity: 0;
+  }
+  .sparks.go { animation: sparks .8s ease-out forwards; }
+  @keyframes sparks {
+    0%   { opacity: 0; transform: translate(-50%, -10%) scale(.5); }
+    30%  { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -70%) scale(1.2); }
+  }
+
+  /* Right column: bus illustration paired with the interactive scene. */
+  .bus-card {
+    width: 100%;
+    max-width: 520px;
+    margin: 36px auto 0;
+    position: relative;
+  }
+  .bus-card img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* Right-bottom corner: single link with arrow. */
+  .corner-link {
+    position: absolute;
+    right: 56px;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: var(--ink);
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", "PingFang SC", cursive, sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    max-width: 360px;
+    text-align: right;
+    transform: rotate(-1.5deg);
+    z-index: 5;
+  }
+  .corner-link .text { flex: 1; }
+  .corner-link .arrow {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+    transition: transform .25s ease;
+  }
+  .corner-link:hover .arrow { transform: translate(4px, -2px) rotate(-6deg); }
+
+  .state-tag {
+    margin-top: 22px;
+    font-family: "Ma Shan Zheng", "ZCOOL KuaiLe", "Liu Jian Mao Cao", cursive;
+    font-size: 10px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--grey);
+  }
+  .state-tag .dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+    transform: translateY(-1px);
+  }
+</style>
+</head>
+<body>
+  <main class="stage">
+    <div class="workbench">
+      <div class="hammer-wrap">
+        <button class="hammer" id="hammer" aria-label="铁锤"></button>
+      </div>
+
+      <div class="tenon" id="tenon"></div>
+      <div class="mortise" id="mortise"></div>
+
+      <div class="sparks" id="sparks" aria-hidden="true"></div>
+
+      <div class="state-tag"><span class="dot"></span><span id="stateLabel">点一下 木槌</span></div>
+    </div>
+
+    <div class="bus-card">
+      <img src="../assets/images/joyride.png" alt="兜风 · 水彩插画" />
+    </div>
+
+    <a class="corner-link" href="../pages/mortise.html" target="_blank" rel="noopener">
+      <span class="text" id="mortiseLinkText"></span>
+      <svg class="arrow" viewBox="0 0 64 64" aria-hidden="true">
+        <defs>
+          <filter id="arrRough" x="-10%" y="-10%" width="120%" height="120%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="4" result="t"/>
+            <feDisplacementMap in="SourceGraphic" in2="t" scale="2.4" xChannelSelector="R" yChannelSelector="G"/>
+          </filter>
+        </defs>
+        <g filter="url(#arrRough)">
+          <path d="M10 32 Q 28 22, 46 32" fill="none" stroke="#2B2A28" stroke-width="3" stroke-linecap="round"/>
+          <path d="M40 24 L 48 32 L 40 40" fill="none" stroke="#2B2A28" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+      </svg>
+    </a>
+  </main>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <filter id="crayon" x="-5%" y="-5%" width="110%" height="110%">
+        <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="9" result="grain"/>
+        <feColorMatrix in="grain" type="matrix"
+          values="0 0 0 0 0
+                  0 0 0 0 0
+                  0 0 0 0 0
+                  0 0 0 0.30 0" result="grainAlpha"/>
+        <feComposite in="grainAlpha" in2="SourceGraphic" operator="in" result="grainInside"/>
+        <feMerge>
+          <feMergeNode in="SourceGraphic"/>
+          <feMergeNode in="grainInside"/>
+        </feMerge>
+      </filter>
+      <filter id="metal" x="-5%" y="-5%" width="110%" height="110%">
+        <feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" seed="5" result="grain"/>
+        <feColorMatrix in="grain" type="matrix"
+          values="0 0 0 0 0
+                  0 0 0 0 0
+                  0 0 0 0 0
+                  0 0 0 0.18 0" result="ga"/>
+        <feComposite in="ga" in2="SourceGraphic" operator="in" result="gm"/>
+        <feMerge>
+          <feMergeNode in="SourceGraphic"/>
+          <feMergeNode in="gm"/>
+        </feMerge>
+      </filter>
+      <filter id="woodgrain" x="-5%" y="-5%" width="110%" height="110%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.012 0.6" numOctaves="2" seed="2" result="g"/>
+        <feColorMatrix in="g" type="matrix"
+          values="0 0 0 0 0
+                  0 0 0 0 0
+                  0 0 0 0 0
+                  0 0 0 0.25 0" result="ga"/>
+        <feComposite in="ga" in2="SourceGraphic" operator="in" result="gm"/>
+        <feMerge>
+          <feMergeNode in="SourceGraphic"/>
+          <feMergeNode in="gm"/>
+        </feMerge>
+      </filter>
+      <filter id="rough" x="-10%" y="-10%" width="120%" height="120%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="6" result="t"/>
+        <feDisplacementMap in="SourceGraphic" in2="t" scale="2.6" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+      <filter id="rough2" x="-10%" y="-10%" width="120%" height="120%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.07" numOctaves="2" seed="13" result="t"/>
+        <feDisplacementMap in="SourceGraphic" in2="t" scale="2.0" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+  </svg>
+
+<script>
+/* =====================================================================
+   MORTISE_DATA — editable text, backend-injectable via window.MORTISE_DATA
+   ===================================================================== */
+const MORTISE_DATA = Object.assign({
+  linkText: '接下来请学习<br/>健康行为的<em>行动计划</em>~',
+}, window.MORTISE_DATA || {});
+
+(function renderMortiseText() {
+  const el = document.getElementById('mortiseLinkText');
+  if (el && MORTISE_DATA.linkText) el.innerHTML = MORTISE_DATA.linkText;
+})();
+
+/* ---------- HAMMER (horizontal, iron head on the right) ---------- */
+function hammerSvg() {
+  return `
+    <svg viewBox="0 0 360 220" preserveAspectRatio="xMidYMid meet">
+      <g filter="url(#rough)">
+        <rect x="20" y="100" width="200" height="22" rx="6"
+              fill="#C49A6C" stroke="#2B2A28" stroke-width="2.2" stroke-linejoin="round" filter="url(#woodgrain)"/>
+        <rect x="20" y="100" width="44" height="22" rx="6"
+              fill="#8B6A4A" stroke="#2B2A28" stroke-width="2" filter="url(#crayon)"/>
+        <line x1="26" y1="106" x2="26" y2="116" stroke="#2B2A28" stroke-width="1.2" opacity=".65"/>
+        <line x1="34" y1="106" x2="34" y2="116" stroke="#2B2A28" stroke-width="1.2" opacity=".65"/>
+        <line x1="42" y1="106" x2="42" y2="116" stroke="#2B2A28" stroke-width="1.2" opacity=".65"/>
+        <line x1="50" y1="106" x2="50" y2="116" stroke="#2B2A28" stroke-width="1.2" opacity=".65"/>
+        <line x1="70" y1="104" x2="216" y2="104" stroke="#FFFFFF" stroke-width="1" opacity=".4"/>
+      </g>
+
+      <g filter="url(#rough2)">
+        <rect x="200" y="58" width="140" height="106" rx="10"
+              fill="#6B7280" stroke="#2B2A28" stroke-width="2.6" stroke-linejoin="round" filter="url(#metal)"/>
+        <rect x="316" y="74" width="24" height="74" rx="4"
+              fill="#9CA3AF" stroke="#2B2A28" stroke-width="2.2" stroke-linejoin="round" filter="url(#metal)"/>
+        <circle cx="208" cy="111" r="22" fill="#6B7280" stroke="#2B2A28" stroke-width="2.4" filter="url(#metal)"/>
+        <line x1="208" y1="64" x2="332" y2="64" stroke="#FFFFFF" stroke-width="2" opacity=".55"/>
+        <circle cx="222" cy="111" r="3" fill="#2B2A28" opacity=".85"/>
+        <circle cx="222" cy="111" r="1.2" fill="#FFFFFF" opacity=".4"/>
+        <path d="M250 86 q 8 -4 16 0" fill="none" stroke="#2B2A28" stroke-width="1.4" opacity=".55"/>
+        <path d="M260 138 q 10 -4 20 0" fill="none" stroke="#2B2A28" stroke-width="1.4" opacity=".55"/>
+      </g>
+    </svg>
+  `;
+}
+
+/* ---------- TENON ---------- */
+function tenonSvg() {
+  return `
+    <svg viewBox="0 0 240 100" preserveAspectRatio="xMidYMin meet">
+      <g filter="url(#rough)">
+        <rect x="0" y="0" width="240" height="60"
+              fill="#C49A6C" stroke="#2B2A28" stroke-width="2.4" stroke-linejoin="round" filter="url(#woodgrain)"/>
+        <path d="M60 60 L 180 60 L 160 100 L 80 100 Z"
+              fill="#C49A6C" stroke="#2B2A28" stroke-width="2.4" stroke-linejoin="round" filter="url(#woodgrain)"/>
+        <line x1="6" y1="6" x2="234" y2="6" stroke="#FFFFFF" stroke-width="1.2" opacity=".4"/>
+        <line x1="20" y1="20" x2="20" y2="50" stroke="#8B6A4A" stroke-width="0.8" opacity=".5"/>
+        <line x1="120" y1="20" x2="120" y2="50" stroke="#8B6A4A" stroke-width="0.8" opacity=".5"/>
+        <line x1="220" y1="20" x2="220" y2="50" stroke="#8B6A4A" stroke-width="0.8" opacity=".5"/>
+        <line x1="100" y1="64" x2="100" y2="98" stroke="#8B6A4A" stroke-width="0.8" opacity=".5"/>
+        <line x1="140" y1="64" x2="140" y2="98" stroke="#8B6A4A" stroke-width="0.8" opacity=".5"/>
+      </g>
+    </svg>
+  `;
+}
+
+/* ---------- MORTISE ---------- */
+function mortiseSvg() {
+  return `
+    <svg viewBox="0 0 240 100" preserveAspectRatio="xMidYMax meet">
+      <g filter="url(#rough)">
+        <rect x="0" y="60" width="240" height="40"
+              fill="#C49A6C" stroke="#2B2A28" stroke-width="2.4" stroke-linejoin="round" filter="url(#woodgrain)"/>
+        <path d="M60 0 L 180 0 L 160 60 L 80 60 Z"
+              fill="#5A3F28" stroke="#2B2A28" stroke-width="2.4" stroke-linejoin="round"/>
+        <path d="M80 60 L 160 60 L 152 50 L 88 50 Z" fill="#2B2A28" opacity=".5"/>
+        <line x1="62" y1="3" x2="178" y2="3" stroke="#FFFFFF" stroke-width="1" opacity=".25"/>
+        <line x1="20" y1="74" x2="20" y2="98" stroke="#8B6A4A" stroke-width="0.8" opacity=".5"/>
+        <line x1="120" y1="74" x2="120" y2="98" stroke="#8B6A4A" stroke-width="0.8" opacity=".5"/>
+        <line x1="220" y1="74" x2="220" y2="98" stroke="#8B6A4A" stroke-width="0.8" opacity=".5"/>
+      </g>
+    </svg>
+  `;
+}
+
+/* ---------- SPARKS ---------- */
+function sparksSvg() {
+  const rays = [];
+  for (let i = 0; i < 10; i++) {
+    const angle = (i / 10) * Math.PI * 2;
+    const x1 = 120 + Math.cos(angle) * 8;
+    const y1 = 70 + Math.sin(angle) * 8;
+    const x2 = 120 + Math.cos(angle) * 30;
+    const y2 = 70 + Math.sin(angle) * 30;
+    rays.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#C24A1F" stroke-width="2.4" stroke-linecap="round"/>`);
+  }
+  return `<svg viewBox="0 0 240 140" preserveAspectRatio="xMidYMid meet">${rays.join('')}</svg>`;
+}
+
+const hammerEl  = document.getElementById('hammer');
+const tenonEl   = document.getElementById('tenon');
+const mortiseEl = document.getElementById('mortise');
+const sparksEl  = document.getElementById('sparks');
+const stateEl   = document.getElementById('stateLabel');
+
+hammerEl.innerHTML  = hammerSvg();
+tenonEl.innerHTML   = tenonSvg();
+mortiseEl.innerHTML = mortiseSvg();
+sparksEl.innerHTML  = sparksSvg();
+
+/* Strike cycle: each click does the full sequence — hammer arcs down, tenon
+   drops into the mortise, sparks fly, then the tenon rises back out so the
+   user can strike again immediately. */
+let isStriking = false;
+function strike() {
+  if (isStriking) return;
+  isStriking = true;
+
+  hammerEl.classList.remove('swing'); void hammerEl.offsetWidth;
+  hammerEl.classList.add('swing');
+
+  /* Mid-swing: head meets the tenon. */
+  setTimeout(() => {
+    tenonEl.classList.add('drop');
+    mortiseEl.classList.add('shake');
+    sparksEl.classList.remove('go'); void sparksEl.offsetWidth;
+    sparksEl.classList.add('go');
+  }, 380);
+
+  /* Hammer returns to horizontal at the end of the 0.85s animation. */
+  setTimeout(() => {
+    isStriking = false;
+  }, 850);
+
+  /* The tenon stays inside for a beat, then pops back out so the cycle is
+     repeatable. */
+  setTimeout(() => {
+    tenonEl.classList.remove('drop');
+  }, 1700);
+}
+
+hammerEl.addEventListener('click', strike);
+</script>
+</body>
+</html>
