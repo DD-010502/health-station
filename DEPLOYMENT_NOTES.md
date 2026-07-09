@@ -2,12 +2,13 @@
 
 > 最后更新：2026-07-09
 > 适用版本：v1.1（SQLite 重构版）
-> 目标环境：2 核 2G ECS（Ubuntu 22.04 LTS）
+> **目标环境：阿里云 · 轻量应用服务器 · 2 核 2G · 香港节点（免备案）**
 
 ---
 
 ## 目录
 
+- [0. 快速决策：选轻量还是 ECS？](#0-快速决策选轻量还是-ecs)
 - [1. 服务器选型与初始化](#1-服务器选型与初始化)
 - [2. Node.js 版本：必须 ≥ 22](#2-nodejs-版本必须--22)
 - [3. SQLite 部署要点](#3-sqlite-部署要点)
@@ -15,38 +16,88 @@
 - [5. Nginx 反向代理 + gzip](#5-nginx-反向代理--gzip)
 - [6. 文件存储 OSS](#6-文件存储-oss)
 - [7. HTTPS 证书](#7-https-证书)
-- [8. 数据库备份与恢复](#8-数据库备份与恢复)
-- [9. 监控与日志](#9-监控与日志)
-- [10. 安全加固](#10-安全加固)
-- [11. 常见问题排查](#11-常见问题排查)
+- [8. **CDN 加速（香港节点大陆访问必备）**](#8-cdn-加速香港节点大陆访问必备)
+- [9. 数据库备份与恢复](#9-数据库备份与恢复)
+- [10. 监控与日志](#10-监控与日志)
+- [11. 安全加固](#11-安全加固)
+- [12. 常见问题排查](#12-常见问题排查)
+- [13. **接下来你要做什么（操作清单）**](#13-接下来你要做什么操作清单)
+
+---
+
+## 0. 快速决策：选轻量还是 ECS？
+
+**结论：本项目推荐「轻量应用服务器 · 香港节点」。**
+
+| 维度 | 轻量应用服务器（香港）| ECS 2核2G（杭州/上海）|
+|------|----------------------|----------------------|
+| 月费 | ~60-100 元 | ~100-150 元 |
+| 备案 | ❌ **不需要** | ✅ 必须（15 个工作日）|
+| 带宽 | 峰值 3-5 Mbps | 按量 30-50 Mbps |
+| 流量 | 部分套餐限 1TB/月 | 不限 |
+| 性能 | 共享型，够用 | 略强 |
+| 横向扩展 | ❌ 单机 | ✅ 可加 SLB |
+| 适合规模 | DAU < 5000 | DAU < 50000 |
+
+### 选轻量的理由（你的项目）
+
+1. 400 用户规模轻量够用
+2. 免备案，**今天买明天就能上线**
+3. SQLite 单文件，**不需要独立云数据库**
+4. 大文件走 OSS+CDN，**不依赖服务器带宽**
+5. 月费省一半
+
+### 选 ECS 的理由
+
+- DAU 破 1000
+- 主要用户在大陆，且不能接受 20-50ms 延迟
+- 需要做灾备 / 横向扩展
+
+> ⚠️ **如果你的用户主要在大陆**：仍可买轻量香港，但**必须配 CDN 加速**（见第 8 节）。
 
 ---
 
 ## 1. 服务器选型与初始化
 
-### 1.1 推荐配置（2 核 2G 即可）
+### 1.1 推荐配置：轻量应用服务器 2 核 2G（香港）
 
 | 项目 | 规格 | 月费参考 |
 |------|------|----------|
-| ECS | 2 vCPU / 2 GB RAM / 40 GB ESSD | ~60-70 元 |
-| 带宽 | 按量计费，峰值 30-50 Mbps | 几元 |
+| 轻量应用服务器 | 2 vCPU / 2 GB RAM / 40-50 GB SSD | ~60-100 元 |
+| 带宽 | 峰值 3-5 Mbps（部分套餐更高） | 包含 |
+| 月流量 | 套餐内 1000 GB（部分不限） | 包含 |
 | 系统 | Ubuntu 22.04 LTS | 包含 |
-| 地域 | 杭州 / 上海（OSS 同区走内网免费） | — |
+| 地域 | 中国香港 | — |
 
-### 1.2 安全组开放端口
+### 1.2 购买流程
 
-| 端口 | 协议 | 用途 | 是否对外 |
-|------|------|------|----------|
-| 22 | TCP | SSH | ✅ 必须 |
-| 80 | TCP | HTTP（Nginx） | ✅ 必须 |
-| 443 | TCP | HTTPS | ✅ 必须 |
-| 3000 | TCP | Node.js | ❌ **只允许 127.0.0.1**（Nginx 内部转发） |
+1. 阿里云控制台 → **轻量应用服务器** → 创建实例
+2. 地域：**中国香港**（避免 20 工作日备案）
+3. 镜像：**Ubuntu 22.04 LTS**
+4. 套餐：2 vCPU / 2 GB / 40 GB SSD
+5. 带宽套餐：建议 5M 峰值（够用）
+6. 购买时长：先买 1 个月试用，**确认一切正常再续费/转年付**
+7. 拿到公网 IP
 
-> ⚠️ 3000 端口**不要**对公网开放，Nginx 在 80/443 后面代理即可。
+### 1.3 安全组与防火墙
 
-### 1.3 系统初始化
+阿里云轻量的"防火墙"在控制台设置（不是安全组）：
+
+| 端口 | 协议 | 用途 | 是否对外开放 |
+|------|------|------|---------------|
+| 22 | TCP | SSH | ✅ |
+| 80 | TCP | HTTP | ✅ |
+| 443 | TCP | HTTPS | ✅ |
+| 3000 | TCP | Node.js | ❌ **不对外**（Nginx 内部转发）|
+
+> ⚠️ 3000 端口**永远不要**对公网开放，Nginx 在 80/443 后面代理即可。
+
+### 1.4 系统初始化
 
 ```bash
+# 首次 SSH 登录（阿里云控制台重置密码后用 root）
+ssh root@<公网IP>
+
 # 更新系统
 apt update && apt upgrade -y
 
@@ -54,10 +105,10 @@ apt update && apt upgrade -y
 adduser deploy
 usermod -aG sudo deploy
 
-# 允许 deploy 用户免密码 sudo（PM2 需要）
-echo "deploy ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/deploy
+# 允许 deploy 免密码 sudo（PM2 需要）
+echo "deploy ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/deploy
 
-# 用 deploy 用户登录
+# 后续用 deploy 用户登录
 ssh deploy@<公网IP>
 ```
 
@@ -76,8 +127,8 @@ ssh deploy@<公网IP>
 ### 2.2 安装命令
 
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-apt install -y nodejs
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo bash -
+sudo apt install -y nodejs
 
 # 验证
 node -v        # 必须输出 v22.x.x 或更高
@@ -89,7 +140,7 @@ node -e "require('node:sqlite')"   # 不报错即可
 两条路：
 - **方案 A（推荐）**：升级到 Node 22，命令见上
 - **方案 B（兜底）**：把 `backend/src/db.js` 切回 `better-sqlite3` 编译方案
-  - 服务器需要 `apt install -y python3 build-essential`
+  - 服务器需要 `sudo apt install -y python3 build-essential`
   - 重新 `npm install better-sqlite3`
 
 > 强烈推荐 Node 22，部署起来干净利落。
@@ -117,20 +168,19 @@ backend/data/health.db-shm    ← 共享内存索引
 
 ```bash
 mkdir -p /var/www/healthstation/backend/data
-chown -R deploy:deploy /var/www/healthstation/backend/data
+sudo chown -R deploy:deploy /var/www/healthstation/backend/data
 ```
 
 ### 3.3 文件权限
 
 ```bash
-# 数据库文件只能 deploy 用户读写
 chmod 600 /var/www/healthstation/backend/data/health.db
 chmod 700 /var/www/healthstation/backend/data
 ```
 
 ### 3.4 磁盘空间监控
 
-SQLite 单库 TB 级没问题，但**服务器系统盘**只有 40GB，要警惕日志和上传文件：
+轻量应用服务器系统盘 40-50GB，要警惕日志和上传文件：
 
 ```bash
 # 定时清理 PM2 日志
@@ -138,6 +188,11 @@ pm2 install pm2-logrotate
 pm2 set pm2-logrotate:max_size 10M
 pm2 set pm2-logrotate:retain 7
 ```
+
+### 3.5 轻量服务器的注意点
+
+- 轻量应用服务器系统盘较小（40-50GB），**不要**把上传文件放本地
+- **必须**走 OSS（见第 6 节），否则一周就可能撑爆
 
 ---
 
@@ -158,12 +213,12 @@ pm2 startup | bash    # 注册 systemd，开机自启
 ### 4.2 内存限制（关键！2G 服务器必须加）
 
 ```bash
-# 方案 A：修改 ecosystem 配置
+# 方案 A：直接传参
 pm2 start src/index.js -i 2 \
   --name health-api \
   --node-args="--max-old-space-size=384"
 
-# 方案 B：写入 ecosystem.json
+# 方案 B：写入 ecosystem.config.js（更规范）
 cat > /var/www/healthstation/backend/ecosystem.config.js << 'EOF'
 module.exports = {
   apps: [{
@@ -203,14 +258,9 @@ pm2 delete health-api     # 移除
 ### 4.4 零停机部署流程
 
 ```bash
-# 1. 拉取新代码
 cd /var/www/healthstation
 git pull
-
-# 2. 装依赖（如有变化）
 cd backend && npm install --production
-
-# 3. 零停机重载（PM2 依次重启每个进程）
 pm2 reload health-api
 ```
 
@@ -260,7 +310,7 @@ server {
         add_header Cache-Control "public, max-age=2592000";
     }
 
-    # 静态资源缓存（图片）
+    # 静态资源缓存
     location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2)$ {
         expires 7d;
         add_header Cache-Control "public, max-age=604800";
@@ -276,9 +326,9 @@ server {
 ### 5.2 启用配置
 
 ```bash
-ln -s /etc/nginx/sites-available/healthstation /etc/nginx/sites-enabled/
-nginx -t                     # 验证配置
-systemctl reload nginx
+sudo ln -s /etc/nginx/sites-available/healthstation /etc/nginx/sites-enabled/
+sudo nginx -t                     # 验证配置
+sudo systemctl reload nginx
 ```
 
 ### 5.3 验证
@@ -291,49 +341,63 @@ curl http://health.your-domain.com/api/health
 
 ---
 
-## 6. 文件存储 OSS
+## 6. 文件存储 OSS（强烈推荐）
 
-### 6.1 推荐用 OSS，不上传到 ECS
+### 6.1 为什么必须用 OSS（轻量香港节点）
 
 **不要**把 PDF/视频传到服务器的 `uploads/` 目录。理由：
-- 2G 内存 + 40GB 硬盘撑不住
-- 大文件下载会卡死带宽
+
+- 轻量服务器系统盘只有 40-50GB，撑不住
+- 3-5 Mbps 带宽根本喂不动视频
 - 阿里云 OSS 走 CDN 又快又便宜
 
 ### 6.2 必填的 .env 变量
 
 ```bash
-OSS_REGION=oss-cn-hangzhou
+OSS_REGION=oss-cn-hangzhou       # ← OSS 选杭州/上海/北京等大陆区
 OSS_ACCESS_KEY_ID=<你的AK>
 OSS_ACCESS_KEY_SECRET=<你的SK>
 OSS_BUCKET=health-station-files
 OSS_ENDPOINT=https://oss-cn-hangzhou.aliyuncs.com
-OSS_CDN_BASE=https://cdn.your-domain.com   # 可选，配置了 CDN 就填
+OSS_CDN_BASE=https://cdn.your-domain.com   # CDN 加速域名（见第 8 节）
 ```
 
-### 6.3 创建 OSS Bucket
+### 6.3 OSS 选什么地域？
+
+| 你的服务器 | 建议 OSS 地域 | 原因 |
+|-----------|--------------|------|
+| 香港轻量 | **杭州 / 上海**（大陆区） | 大陆用户访问快；OSS+CDN 走大陆边缘节点 |
+| 大陆 ECS | 同地域 | 内网传输免费 |
+
+> 香港 → 大陆 OSS 不走内网（要走公网），但配合 CDN 加速后**用户实际访问是从大陆 CDN 拉**，**不经过香港服务器**，反而最快。
+
+### 6.4 创建 OSS Bucket
 
 1. 阿里云控制台 → OSS → 创建 Bucket
 2. 名称：`health-station-files`
-3. 地域：和 ECS 同地域（**内网传输免费**）
+3. 地域：杭州或上海
 4. 读写权限：**公共读**（让用户能直接访问 PDF/视频 URL）
 5. 创建 RAM 子用户，授权 `AliyunOSSFullAccess`
 
-### 6.4 降级：本地存储（无 OSS 时）
+### 6.5 降级：本地存储（无 OSS 时）
 
-如果暂未开通 OSS，代码会**自动降级**到本地 `uploads/pdf/模块名/` 和 `uploads/video/模块名/`。
+代码会**自动降级**到本地 `uploads/pdf/模块名/` 和 `uploads/video/模块名/`。
 - 适合开发和小规模测试
-- 生产环境强烈建议 OSS
+- 生产环境**强烈建议 OSS**
 
 ---
 
 ## 7. HTTPS 证书
 
-### 7.1 用 certbot 一键签发
+### 7.1 香港节点优势
+
+香港节点**不需要备案**，可以直接签发 Let's Encrypt 证书，立即上 HTTPS。
+
+### 7.2 certbot 一键签发
 
 ```bash
-apt install -y certbot python3-certbot-nginx
-certbot --nginx -d health.your-domain.com
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d health.your-domain.com
 ```
 
 会自动：
@@ -342,29 +406,117 @@ certbot --nginx -d health.your-domain.com
 - HTTP → HTTPS 自动跳转
 - 加 crontab 自动续期（90 天）
 
-### 7.2 验证自动续期
+### 7.3 DNS 解析先做
 
-```bash
-certbot renew --dry-run
+签发证书**之前**，先在域名 DNS 添加 A 记录指向香港服务器公网 IP（让 Let's Encrypt 验证域名所有权）：
+
 ```
-
-### 7.3 国内服务器注意
-
-- 阿里云 / 腾讯云 ECS 必须**先备案**才能用 80/443
-- 备案周期约 15 个工作日
-- 期间可以用 IP + 端口测试，但**不能**上线
+类型: A
+主机: health
+值: <香港服务器IP>
+TTL: 10 分钟
+```
 
 ---
 
-## 8. 数据库备份与恢复
+## 8. CDN 加速（香港节点大陆访问必备）
 
-### 8.1 自动备份（cron）
+> ⚠️ **这一节是香港节点最重要的配置**。不配 CDN，大陆用户访问会卡到怀疑人生。
+
+### 8.1 为什么必须配 CDN
+
+```
+没配 CDN：
+  大陆用户 → 直连香港服务器（200-300ms 延迟 + 3-5Mbps 带宽）
+  视频首屏：5-10 秒
+
+配了 CDN：
+  大陆用户 → 大陆边缘节点（30-50ms 延迟 + CDN 全速）
+  视频首屏：1-2 秒
+```
+
+### 8.2 推荐 CDN 方案：阿里云 CDN
+
+#### 步骤 1：开通 CDN
+
+1. 阿里云控制台 → **CDN**
+2. 添加域名：`cdn.your-domain.com`（子域名，用于 OSS 加速）
+3. 源站类型：**OSS 域名**
+4. 源站信息：选择你的 OSS Bucket
+5. 加速类型：**全站加速**
+
+#### 步骤 2：DNS 解析
+
+```
+类型: CNAME
+主机: cdn
+值: <阿里云 CDN 给你的 CNAME 值>
+TTL: 10 分钟
+```
+
+#### 步骤 3：HTTPS 证书（CDN 也要配证书）
+
+CDN 控制台 → HTTPS 设置 → 上传证书或选阿里云免费证书。
+
+#### 步骤 4：缓存策略
+
+| 资源类型 | 缓存时间 | 配置 |
+|---------|---------|------|
+| HTML | 0 秒（不缓存，强制回源） | 默认 |
+| JS / CSS | 30 天 | 路径后缀 `*.js;*.css` |
+| 图片（jpg/png/webp） | 30 天 | 路径后缀 `*.jpg;*.png;*.webp` |
+| 视频（mp4） | 7 天 | 路径后缀 `*.mp4` |
+| PDF | 7 天 | 路径后缀 `*.pdf` |
+
+#### 步骤 5：更新 .env
+
+```bash
+OSS_CDN_BASE=https://cdn.your-domain.com
+```
+
+后端上传文件后，**返回的 URL 自动用 CDN 域名**。
+
+### 8.3 前端静态资源 CDN（可选）
+
+如果你也想让 HTML/JS 走 CDN：
+
+1. CDN 加第二个域名：`static.your-domain.com`
+2. 源站：选 **IP**，填香港服务器公网 IP
+3. 把前端 `try/` 目录部署到服务器
+4. DNS 解析 `static.your-domain.com` → CDN CNAME
+5. 用户访问 `https://static.your-domain.com/` 加载页面
+
+> 这是进阶优化，初版可以**先不做**，等业务跑起来再优化。
+
+### 8.4 验证 CDN 生效
+
+```bash
+# 在大陆电脑上 ping 域名
+ping cdn.your-domain.com
+# 应该解析到大陆 CDN 节点（电信/联通/移动 IP）
+
+# 模拟用户访问
+curl -I https://cdn.your-domain.com/health-station-files/test.pdf
+# 应该返回 200 + 命中缓存 (X-Swift-CacheTime)
+```
+
+### 8.5 月费预估
+
+- 阿里云 CDN：0.18 元/GB（按量），初期几十 GB 几块钱
+- 流量越大越便宜
+- 400 用户规模，**月费几元到几十元**
+
+---
+
+## 9. 数据库备份与恢复
+
+### 9.1 自动备份（cron）
 
 ```bash
 crontab -e
 
 # 每天凌晨 3 点备份 SQLite
-0 3 * * * sqlite3 /var/www/healthstation/backend/data/health.db ".backup /backup/health_$(date +\%Y\%m\%d).db)"
+0 3 * * * sqlite3 /var/www/healthstation/backend/data/health.db ".backup /backup/health_$(date +\%Y\%m\%d).db"
 
 # 清理 30 天前的旧备份
 0 4 * * * find /backup -name "health_*.db" -mtime +30 -delete
@@ -373,53 +525,49 @@ crontab -e
 > 为什么要用 `.backup` 而非 `cp`？
 > `.backup` 是 SQLite 的热备份 API，**不会锁库**也不影响读写。直接 `cp` 在高并发写时可能拿到损坏的 db。
 
-### 8.2 手动备份
+### 9.2 手动备份
 
 ```bash
 sqlite3 /var/www/healthstation/backend/data/health.db ".backup /tmp/manual-backup.db"
 ```
 
-### 8.3 恢复
+### 9.3 恢复
 
 ```bash
-# 1. 停服务
 pm2 stop health-api
-
-# 2. 备份当前库（避免恢复失败丢数据）
-cp /var/www/healthstation/backend/data/health.db /tmp/old.db
-
-# 3. 用备份覆盖
-cp /backup/health_20260709.db /var/www/healthstation/backend/health.db
+cp /var/www/healthstation/backend/data/health.db /tmp/old.db   # 备份当前库
+cp /backup/health_20260709.db /var/www/healthstation/backend/data/health.db
 chmod 600 /var/www/healthstation/backend/data/health.db
-
-# 4. 启服务
 pm2 start health-api
 ```
 
-### 8.4 备份验证（每月做一次）
+### 9.4 备份验证（每月做一次）
 
 ```bash
-# 把备份拷到本地检查能否打开
 scp deploy@server:/backup/health_20260709.db /tmp/
 sqlite3 /tmp/health_20260709.db "SELECT COUNT(*) FROM events; SELECT COUNT(*) FROM users;"
 ```
 
+### 9.5 轻量服务器注意
+
+轻量系统盘 40-50GB，**别把备份放系统盘**。建议：
+- 备份目录 `/backup/` 放系统盘
+- 每周一次手动下载到本地（用 scp）
+- 后续接入阿里云对象存储做异地备份（可选）
+
 ---
 
-## 9. 监控与日志
+## 10. 监控与日志
 
-### 9.1 PM2 日志
+### 10.1 PM2 日志
 
 ```bash
-# 实时
 pm2 logs health-api
-
-# 落盘位置
-/root/.pm2/logs/health-api-out.log
-/root/.pm2/logs/health-api-error.log
+# 落盘位置: /root/.pm2/logs/health-api-out.log
+#           /root/.pm2/logs/health-api-error.log
 ```
 
-### 9.2 日志轮转
+### 10.2 日志轮转
 
 ```bash
 pm2 install pm2-logrotate
@@ -428,19 +576,31 @@ pm2 set pm2-logrotate:retain 7
 pm2 set pm2-logrotate:compress true
 ```
 
-### 9.3 阿里云监控
+### 10.3 阿里云轻量监控
 
-云监控控制台 → ECS → 告警规则：
-- CPU > 80% 持续 5 分钟 → 告警
-- 内存 > 85% 持续 5 分钟 → 告警
-- 磁盘使用率 > 85% → 告警
-- 公网出带宽 > 80% 峰值 → 告警
+轻量应用服务器控制台 → 监控 → 开启基础监控：
+- CPU 使用率
+- 内存使用率
+- 公网出带宽
+- 磁盘使用率
+
+**告警规则建议**：
+- CPU > 80% 持续 5 分钟
+- 内存 > 85% 持续 5 分钟
+- 磁盘使用率 > 85%
+
+### 10.4 实时监控面板
+
+```bash
+pm2 monit     # 实时 CPU/内存/日志看板
+htop         # 系统级（sudo apt install -y htop）
+```
 
 ---
 
-## 10. 安全加固
+## 11. 安全加固
 
-### 10.1 修改管理后台密码
+### 11.1 修改管理后台密码
 
 ```bash
 nano /var/www/healthstation/backend/.env
@@ -448,21 +608,16 @@ nano /var/www/healthstation/backend/.env
 pm2 reload health-api
 ```
 
-### 10.2 防火墙
+### 11.2 防火墙（轻量自带控制台即可）
+
+在轻量应用服务器控制台 → 防火墙 → 配置规则：
+- 22/80/443 放行
+- 3000 **不**放行
+
+### 11.3 SSH 密钥登录（推荐）
 
 ```bash
-# 安装 ufw
-apt install -y ufw
-ufw allow 22/tcp
-ufw allow 80/tcp
-ufw allow 443/tcp
-ufw enable
-```
-
-### 10.3 SSH 密钥登录（推荐）
-
-```bash
-# 本地：生成密钥（如已有可跳过）
+# 本地 Mac：生成密钥
 ssh-keygen -t ed25519
 
 # 把公钥复制到服务器
@@ -474,23 +629,21 @@ sudo nano /etc/ssh/sshd_config
 sudo systemctl restart sshd
 ```
 
-### 10.4 数据库文件
+### 11.4 数据库文件
 
 - `backend/data/health.db` **绝对不要**让公网访问
 - Nginx 配置不要把 `/data/` 暴露出去
 - 定期检查文件权限：`chmod 600`
 
-### 10.5 定期更新
+### 11.5 定期更新
 
 ```bash
-# 每月一次
-apt update && apt upgrade -y
-npm outdated    # 检查过时的 npm 包
+sudo apt update && sudo apt upgrade -y
 ```
 
 ---
 
-## 11. 常见问题排查
+## 12. 常见问题排查
 
 ### Q1: 启动报 `Cannot find module 'node:sqlite'`
 
@@ -498,7 +651,7 @@ npm outdated    # 检查过时的 npm 包
 **解决**：
 ```bash
 node -v   # 必须 >= v22
-# 升级见 第 2 节
+# 升级见第 2 节
 ```
 
 ### Q2: `SQLITE_BUSY` 错误
@@ -529,10 +682,10 @@ sqlite> .exit
 ### Q6: 80 端口被占用
 
 ```bash
-lsof -i :80
+sudo lsof -i :80
 # 通常是 apache2 占用了
-systemctl stop apache2
-systemctl disable apache2
+sudo systemctl stop apache2
+sudo systemctl disable apache2
 ```
 
 ### Q7: 中文乱码
@@ -543,36 +696,141 @@ sqlite3 health.db "PRAGMA encoding;"   # 应为 UTF-8
 ```
 如果不对，需要重建库（SQLite 不支持改编码）。
 
----
+### Q8: 大陆用户访问很慢
 
-## 12. 一页式部署清单
+**原因**：没配 CDN（见第 8 节）。
+**解决**：开阿里云 CDN，把 `cdn.your-domain.com` 解析到 CDN。
+
+### Q9: 视频加载卡顿
+
+- 确认走的是 OSS+CDN，不是服务器
+- 视频文件用 `mp4` 编码（H.264），不要用 MOV
+- 视频大小建议 < 100MB/段
+- 考虑用 HLS（m3u8 + ts 分片）做流媒体
+
+### Q10: 域名解析不生效
 
 ```bash
-# === 一键部署流程 ===
+ping health.your-domain.com
+nslookup health.your-domain.com
+# 国内 DNS 解析慢，DNS 缓存可能需要 10-30 分钟
+```
+
+---
+
+## 13. 接下来你要做什么（操作清单）
+
+> 这是按时间顺序的**完整行动清单**，照着做就行。
+
+### 📅 第 1 步：购买服务器（1 小时）
+
+- [ ] 登录阿里云控制台
+- [ ] 购买**轻量应用服务器 · 2 核 2G · 香港节点 · Ubuntu 22.04**
+- [ ] 拿到公网 IP
+- [ ] 控制台防火墙放行：22、80、443
+
+### 📅 第 2 步：购买域名（30 分钟）
+
+- [ ] 阿里云万网 / 腾讯云 DNSPod 购买域名（.com 推荐）
+- [ ] DNS 解析：添加 A 记录 `health.your-domain.com` → 香港服务器 IP
+- [ ] 等待 10-30 分钟 DNS 生效（`ping health.your-domain.com` 验证）
+
+### 📅 第 3 步：准备内容素材（2-4 小时，不依赖任何外部条件）
+
+- [ ] 7 张正式图片（hero、title1/2/3、team、mona-lisa、joyride）→ 替换 `assets/images/`
+- [ ] 6 个模块的 PDF（每模块 2-3 个）
+- [ ] 6 个模块的视频（每模块 2-3 个 mp4）
+- [ ] 视频封面图
+- [ ] 各模块卷首语文字
+
+### 📅 第 4 步：开通 OSS + CDN（30 分钟）
+
+- [ ] 创建 OSS Bucket（杭州/上海）+ 公共读权限
+- [ ] 创建 RAM 子用户 + AccessKey + AliyunOSSFullAccess 授权
+- [ ] 开通阿里云 CDN，添加 `cdn.your-domain.com`
+- [ ] DNS 解析 `cdn` CNAME 到 CDN 给的值
+- [ ] 给 CDN 配置 HTTPS 证书（或选阿里云免费证书）
+
+### 📅 第 5 步：服务器初始化（1 小时）
+
+- [ ] SSH 登录服务器：`ssh root@<IP>`
+- [ ] 创建 deploy 用户
+- [ ] 装 Node.js 22 + PM2 + Nginx + sqlite3 + certbot
+- [ ] 拉代码：`git clone https://github.com/DD-010502/health-station.git /var/www/healthstation`
+- [ ] `cd backend && npm install --production`
+- [ ] `cp .env.example .env` 并填入 OSS 密钥、ADMIN_PASSWORD、CDN 域名
+- [ ] 启动后端（PM2 Cluster 双进程，384MB 内存限制）
+- [ ] 配置 Nginx 反向代理
+- [ ] 配 HTTPS 证书
+- [ ] 配置 crontab 每日备份
+- [ ] 配置 PM2 logrotate
+
+### 📅 第 6 步：上传内容（1-2 小时）
+
+- [ ] 通过管理后台上传 PDF / 视频 / 封面到 OSS
+- [ ] 通过 API 或管理后台更新 `content_modules`，填入 OSS URL
+- [ ] 编辑各模块卷首语文字
+- [ ] 配置 `window.CONTENT_DATA` 注入（或通过 `GET /api/content` 动态加载）
+
+### 📅 第 7 步：全流程测试（1 小时）
+
+- [ ] 打开 `https://health.your-domain.com`
+- [ ] 输入昵称 → 检查 `users` 表新增
+- [ ] 浏览各模块 → 检查 `events` 表
+- [ ] 打卡 → 检查 `checkin_data` 表
+- [ ] 播放视频 → 检查 `video_watch` 表
+- [ ] 打开 `/admin` 登录 → 看管理后台数据
+- [ ] 检查 CDN 缓存是否命中（`curl -I https://cdn.your-domain.com/...`）
+- [ ] 检查大陆访问速度（用 `https://www.17ce.com` 或 `https://tools.ipip.net` 测速）
+
+### 📅 第 8 步：上线公告（30 分钟）
+
+- [ ] 修改 `ADMIN_PASSWORD` 为强密码
+- [ ] 启用 SSH 密钥登录
+- [ ] 关闭防火墙 22 端口对全网开放（仅允许你的 IP）
+- [ ] 在 README/CONTACT 留下联系方式
+- [ ] 通知用户上线
+
+### 📅 第 9 步：持续运营
+
+- [ ] 每周看一次管理后台统计
+- [ ] 每月做一次备份恢复演练
+- [ ] 每季度更新一次内容
+- [ ] 关注阿里云控制台告警
+- [ ] 监控 PM2 进程状态
+
+---
+
+### 一页式快速部署命令
+
+```bash
+# === 完整部署（一行一行复制执行）===
 
 # 1. SSH 登录
-ssh deploy@<公网IP>
+ssh root@<公网IP>
 
-# 2. 装基础环境
-sudo apt update && sudo apt install -y nginx sqlite3
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo bash -
-sudo apt install -y nodejs
-sudo npm install -g pm2
+# 2. 装基础
+apt update && apt install -y nginx sqlite3
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+apt install -y nodejs
+npm install -g pm2
 
-# 3. 拉代码
-sudo mkdir -p /var/www/healthstation
-sudo chown deploy:deploy /var/www/healthstation
+# 3. 创建用户
+adduser deploy
+usermod -aG sudo deploy
+echo "deploy ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/deploy
+
+# 4. 拉代码（以 deploy 用户身份）
+su - deploy
+mkdir -p /var/www/healthstation
 cd /var/www/healthstation
 git clone https://github.com/DD-010502/health-station.git .
 
-# 4. 装依赖
+# 5. 装依赖 + 配 .env
 cd backend
 npm install --production
 cp .env.example .env
-nano .env   # 填入 OSS 密钥、ADMIN_PASSWORD
-
-# 5. 建 db 目录
-mkdir -p data
+nano .env  # 填 OSS 密钥、ADMIN_PASSWORD、CDN 域名
 
 # 6. 启动
 pm2 start src/index.js -i 2 --name health-api \
@@ -598,21 +856,24 @@ EOF
 sudo ln -s /etc/nginx/sites-available/healthstation /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 
-# 8. 配 SSL
+# 8. HTTPS
 sudo apt install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d health.your-domain.com
 
-# 9. 配 cron 备份
+# 9. 备份 cron
 (crontab -l 2>/dev/null; echo "0 3 * * * sqlite3 /var/www/healthstation/backend/data/health.db \".backup /backup/health_\$(date +\\%Y\\%m\\%d).db\"") | crontab -
 
-# 10. 验证
-curl https://health.your-domain.com/api/health
+# 10. PM2 日志轮转
+pm2 install pm2-logrotate
+pm2 set pm2-logrotate:max_size 10M
+pm2 set pm2-logrotate:retain 7
 ```
 
 ✅ 全部执行完即可上线。
 
 ---
 
-**文档版本**：v1.0 · 2026-07-09
+**文档版本**：v1.1 · 2026-07-09
 **项目版本**：健康小站 v1.1（SQLite 版）
-**预计部署耗时**：1-2 小时（不含备案和素材准备）
+**目标环境**：阿里云轻量应用服务器 · 2 核 2G · 香港节点
+**预计部署耗时**：4-6 小时（含素材准备），纯部署动作 1-2 小时
