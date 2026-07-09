@@ -139,9 +139,9 @@ router.get('/stats', async (req, res) => {
   try {
     const [[{ totalUsers }]]      = await pool.query('SELECT COUNT(*) AS totalUsers FROM users');
     const [[{ totalEvents }]]     = await pool.query('SELECT COUNT(*) AS totalEvents FROM events');
-    const [[{ todayEvents }]]     = await pool.query("SELECT COUNT(*) AS todayEvents FROM events WHERE DATE(created_at) = CURDATE()");
+    const [[{ todayEvents }]]     = await pool.query("SELECT COUNT(*) AS todayEvents FROM events WHERE date(created_at) = date('now')");
     const [[{ totalVideos }]]     = await pool.query('SELECT COUNT(*) AS totalVideos FROM video_watch');
-    const [[{ todayVideos }]]     = await pool.query("SELECT COUNT(*) AS todayVideos FROM video_watch WHERE DATE(created_at) = CURDATE()");
+    const [[{ todayVideos }]]     = await pool.query("SELECT COUNT(*) AS todayVideos FROM video_watch WHERE date(created_at) = date('now')");
 
     // 各事件类型分布
     const [eventTypes] = await pool.query(
@@ -150,10 +150,10 @@ router.get('/stats', async (req, res) => {
 
     // 最近 7 天每日事件数
     const [dailyEvents] = await pool.query(
-      `SELECT DATE(created_at) AS date, COUNT(*) AS count
+      `SELECT date(created_at) AS date, COUNT(*) AS count
        FROM events
-       WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-       GROUP BY DATE(created_at)
+       WHERE created_at >= date('now', '-7 days')
+       GROUP BY date(created_at)
        ORDER BY date`
     );
 
@@ -340,10 +340,10 @@ router.get('/video-stats', async (req, res) => {
 
     // 最近 7 天每日观看次数
     const [dailyWatch] = await pool.query(
-      `SELECT DATE(created_at) AS date, COUNT(*) AS count
+      `SELECT date(created_at) AS date, COUNT(*) AS count
        FROM video_watch
-       WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-       GROUP BY DATE(created_at)
+       WHERE created_at >= date('now', '-7 days')
+       GROUP BY date(created_at)
        ORDER BY date`
     );
 

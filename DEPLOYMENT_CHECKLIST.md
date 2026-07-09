@@ -1,6 +1,7 @@
 # 健康小站 · 上线路程图
 
 > 当前状态：本地开发完成，前后端未联通，未部署
+> 数据库：SQLite（better-sqlite3，单文件 + WAL 模式）
 
 ---
 
@@ -11,7 +12,7 @@
 ──────                      ──────
 后端: localhost:3000  ✅     后端: https://api.health.xxx
 前端: file:// 本地打开       前端: https://health.xxx (同一域名)
-数据库: 本地 MySQL           数据库: 阿里云 RDS MySQL
+数据库: 本地 SQLite          数据库: ECS 本地 SQLite 单文件
 文件: 本地磁盘               文件: 阿里云 OSS
 ```
 
@@ -39,8 +40,8 @@
 
 - [ ] **2.1 购买 ECS 实例**
   - 地域：杭州/上海（离用户近）
-  - 规格：2 核 4G（初期够用）
-  - 系统：CentOS 7.9 或 Ubuntu 22.04
+  - 规格：2 核 2G（SQLite 方案，初期够用）
+  - 系统：Ubuntu 22.04
   - 拿到公网 IP
 
 - [ ] **2.2 安全组配置**
@@ -54,13 +55,12 @@
 
 - [ ] **2.4 安装运行环境**
   ```bash
-  # Node.js
+  # Node.js 20
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
   apt install -y nodejs
 
-  # MySQL
-  apt install -y mysql-server
-  mysql_secure_installation
+  # SQLite3（一般系统已自带，验证一下即可）
+  apt install -y sqlite3
 
   # Nginx
   apt install -y nginx
@@ -78,25 +78,32 @@
   scp -r try/ root@<IP>:/var/www/healthstation/
   ```
 
-- [ ] **2.6 导入数据库**
+- [ ] **2.6 初始化数据库**
   ```bash
-  mysql -u root -p < /var/www/healthstation/backend/schema.sql
+  # 启动后端时会自动建表 + 插入默认模块（无需手动导入 schema.sql）
+  # 也可手动执行：
+  cd /var/www/healthstation/backend
+  mkdir -p data
+  sqlite3 data/health.db < schema.sql
   ```
 
 - [ ] **2.7 配置 .env**
   ```bash
   cp backend/.env.example backend/.env
-  # 编辑填入服务器上的 MySQL 密码
+  # 编辑填入 OSS 密钥和管理员密码
+  nano backend/.env
   ```
 
-- [ ] **2.8 启动后端**
+- [ ] **2.8 启动后端（PM2 Cluster 双进程）**
   ```bash
   cd /var/www/healthstation/backend
   npm install --production
-  pm2 start src/index.js --name health-api
+  pm2 start src/index.js -i 2 --name health-api
   pm2 save
   pm2 startup    # 开机自启
   ```
+
+  > 双进程模式 `-i 2` 利用 2 个 CPU 核心，比单进程吞吐翻倍。
 
 ---
 
@@ -235,10 +242,13 @@
   pm2 restart health-api
   ```
 
-- [ ] **7.2 配置 MySQL 自动备份**
+- [ ] **7.2 配置 SQLite 自动备份**
   ```bash
-  # crontab -e，每天凌晨 3 点备份
-  0 3 * * * mysqldump -u root health_station | gzip > /backup/health_$(date +\%Y\%m\%d).sql.gz
+  # crontab -e，每天凌晨 3 点备份（SQLite 备份就是复制单文件）
+  0 3 * * * cp /var/www/healthstation/backend/data/health.db /backup/health_$(date +\%Y\%m\%d).db
+
+  # 推荐使用 .backup 模式（热备份，不影响运行）
+  0 3 * * * sqlite3 /var/www/healthstation/backend/data/health.db ".backup /backup/health_$(date +\%Y\%m\%d).db"
   ```
 
 - [ ] **7.3 配置日志**

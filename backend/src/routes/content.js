@@ -61,14 +61,14 @@ router.post('/:moduleId', async (req, res) => {
 
     await pool.query(
       `INSERT INTO content_modules (module_key, name, intro_title, intro_paragraphs, pdfs, videos, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, NOW())
-       ON DUPLICATE KEY UPDATE
-         name = VALUES(name),
-         intro_title = VALUES(intro_title),
-         intro_paragraphs = VALUES(intro_paragraphs),
-         pdfs = VALUES(pdfs),
-         videos = VALUES(videos),
-         updated_at = NOW()`,
+       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+       ON CONFLICT(module_key) DO UPDATE SET
+         name = excluded.name,
+         intro_title = excluded.intro_title,
+         intro_paragraphs = excluded.intro_paragraphs,
+         pdfs = excluded.pdfs,
+         videos = excluded.videos,
+         updated_at = datetime('now')`,
       [
         moduleId,
         name || '',

@@ -40,12 +40,12 @@ router.post('/todos', async (req, res) => {
 
     await pool.query(
       `INSERT INTO checkin_data (user_id, todos, done_dates, done_tasks, updated_at)
-       VALUES (?, ?, ?, ?, NOW())
-       ON DUPLICATE KEY UPDATE
-         todos = VALUES(todos),
-         done_dates = VALUES(done_dates),
-         done_tasks = VALUES(done_tasks),
-         updated_at = NOW()`,
+       VALUES (?, ?, ?, ?, datetime('now'))
+       ON CONFLICT(user_id) DO UPDATE SET
+         todos = excluded.todos,
+         done_dates = excluded.done_dates,
+         done_tasks = excluded.done_tasks,
+         updated_at = datetime('now')`,
       [
         user_id,
         JSON.stringify(todos || []),

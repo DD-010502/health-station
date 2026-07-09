@@ -5,13 +5,10 @@ module.exports = {
   port: process.env.PORT || 3000,
   debug: process.env.DEBUG === 'true',
 
-  // MySQL
+  // SQLite
   db: {
-    host:     process.env.DB_HOST || '127.0.0.1',
-    port:     parseInt(process.env.DB_PORT || '3306', 10),
-    user:     process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'health_station',
+    // 数据库文件路径，相对 backend/ 目录
+    path: process.env.DB_PATH || './data/health.db',
   },
 
   // 阿里云 OSS

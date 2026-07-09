@@ -1,6 +1,6 @@
 # 健康小站 — 架构选型建议
 
-> 基于 400 用户规模、2核2G ECS 的部署方案分析。待实施时参考。
+> 基于 400 用户规模、2核2G ECS 的部署方案分析。**SQLite 改造已于 2026-07-09 实施完成。**
 
 ---
 
@@ -8,7 +8,27 @@
 
 ### 可行性结论
 
-✅ **完全可行。** 400 用户规模下 SQLite 绰绰有余，所有业务功能均可覆盖。
+✅ **完全可行，已实施。** 400 用户规模下 SQLite 绰绰有余，所有业务功能均已覆盖。
+
+### 已实施的改动
+
+| 文件 | 状态 |
+|------|------|
+| `backend/schema.sql` | ✅ 已改写为 SQLite 语法 |
+| `backend/src/db.js` | ✅ 已切换为 Node 22+ 内建 `node:sqlite`（无外部依赖） |
+| `backend/src/routes/checkin.js` | ✅ `ON DUPLICATE KEY` → `ON CONFLICT ... DO UPDATE SET` |
+| `backend/src/routes/content.js` | ✅ 同上 |
+| `backend/src/routes/admin.js` | ✅ `CURDATE()` → `date('now')`，`DATE_SUB(...)` → `date('now', '-7 days')` |
+| `backend/src/config.js` | ✅ 去掉 MySQL 配置，新增 `db.path` |
+| `backend/package.json` | ✅ 移除 `mysql2`（`node:sqlite` 是 Node 22+ 内建） |
+| `backend/.env` / `.env.example` | ✅ 改为 `DB_PATH=./data/health.db` |
+
+### 本地测试结果
+
+- 全部 15 个 API 接口已通过冒烟测试
+- ON CONFLICT 二次写入正确覆盖原数据
+- 日期函数 `date('now')` 与 `date('now', '-7 days')` 工作正常
+- 启动时自动建表 + 写入默认模块（无需手动 `mysql -u root -p < schema.sql`）
 
 ### 负载推演（极端情况：400 人同时操作）
 
